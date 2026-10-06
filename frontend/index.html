@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GNN-AoI Live</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='5' fill='%233987e5'/><circle cx='16' cy='16' r='10' fill='none' stroke='%233987e5' stroke-width='2' opacity='.6'/><circle cx='16' cy='16' r='15' fill='none' stroke='%233987e5' stroke-width='1.5' opacity='.3'/></svg>">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <div class="brand-name">GNN-AoI</div>
+        <div class="brand-sub">Correlation-aware sensor scheduling</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="live" role="tab">Live demo</button>
+      <button class="tab" data-view="how" role="tab">How it works</button>
+      <button class="tab" data-view="results" role="tab">Results</button>
+    </nav>
+    <div class="status" id="status"><span class="dot"></span><span id="status-text">connecting…</span></div>
+  </header>
+
+  <!-- ============================== LIVE ============================== -->
+  <main id="view-live" class="view active">
+    <section class="controls card">
+      <div class="ctl">
+        <label for="dataset">Dataset</label>
+        <select id="dataset"></select>
+      </div>
+      <div class="ctl">
+        <label for="day">Day (test period)</label>
+        <select id="day"></select>
+      </div>
+      <div class="ctl ctl-narrow">
+        <label for="hour">Start</label>
+        <select id="hour"></select>
+      </div>
+      <div class="ctl ctl-slider">
+        <label for="capacity">Polls per slot <b id="capacity-val"></b></label>
+        <input type="range" id="capacity">
+      </div>
+      <div class="ctl">
+        <label>Schedulers</label>
+        <div class="chips" id="sched-chips"></div>
+      </div>
+      <div class="ctl">
+        <label>Colour sensors by</label>
+        <div class="seg" id="mode">
+          <button data-mode="value" class="on">Reading</button>
+          <button data-mode="error">Sink error</button>
+          <button data-mode="uncertainty">Uncertainty</button>
+        </div>
+      </div>
+      <div class="ctl ctl-slider">
+        <label for="speed">Speed <b id="speed-val"></b></label>
+        <input type="range" id="speed" min="0" max="6" step="1" value="2">
+      </div>
+      <div class="ctl ctl-buttons">
+        <button class="btn primary" id="play" title="Play / pause (space)"><span class="ico-play"></span><span class="lbl">Play</span></button>
+        <button class="btn" id="stepbtn" title="One slot (→)">Step</button>
+        <button class="btn" id="restart" title="Restart (R)">Restart</button>
+      </div>
+    </section>
+
+    <section class="clock card">
+      <div class="clock-time">
+        <div class="clock-date" id="clock-date">—</div>
+        <div class="clock-hm" id="clock-hm">--:--</div>
+      </div>
+      <div class="clock-meta">
+        <div class="clock-line" id="clock-line">Loading the sensor network…</div>
+        <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="maps" id="maps"></section>
+    <div class="legend-row" id="legend"></div>
+
+    <section class="lower">
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3>Sink error over time</h3>
+          <span class="hint" id="chart-hint"></span>
+        </div>
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="card decision-card">
+        <div class="card-head">
+          <h3>Why these sensors?</h3>
+          <div class="seg small" id="explain-tabs"></div>
+        </div>
+        <p class="decision-summary" id="decision-summary"></p>
+        <div class="decision" id="decision"></div>
+      </div>
+      <div class="card log-card">
+        <div class="card-head"><h3>Transmission log</h3><span class="hint">latest first</span></div>
+        <div class="log" id="log"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================== HOW ============================== -->
+  <main id="view-how" class="view">
+    <section class="hero card">
+      <h1>Which sensors should report right now?</h1>
+      <p class="lede">A base station (the <b>sink</b>) watches many sensors but the radio channel only lets
+        a few of them transmit in each time slot. Classic <b>Age-of-Information</b> scheduling simply asks the
+        stalest sensors. But neighbouring sensors measure almost the same thing, so a fresh reading from
+        one also tells the sink a lot about its neighbours. This project learns to exploit that.</p>
+    </section>
+
+    <section class="steps">
+      <article class="step card">
+        <div class="step-n">1</div>
+        <h3>Learn from history</h3>
+        <p>From the training days the sink learns each sensor's <b>typical daily pattern</b> (heating cycles, rush hour),
+          how fast each sensor drifts, and a <b>correlation graph</b>: which sensors move together.</p>
+      </article>
+      <article class="step card">
+        <div class="step-n">2</div>
+        <h3>Track what it doesn't know</h3>
+        <p>A <b>Kalman filter</b> keeps an estimate of <i>every</i> sensor, including the silent ones, plus an
+          <b>uncertainty</b> for each. Hearing from one sensor also shrinks the uncertainty of its correlated neighbours.</p>
+      </article>
+      <article class="step card">
+        <div class="step-n">3</div>
+        <h3>Decide with a GNN</h3>
+        <p>A <b>graph neural network</b> reads the graph (age, uncertainty, drift speed, deadline per sensor) and picks
+          sensors one at a time, each pick aware of the previous ones so it avoids redundant polls.</p>
+      </article>
+      <article class="step card">
+        <div class="step-n">4</div>
+        <h3>Never let anyone go stale</h3>
+        <p>A hard <b>freshness guarantee</b>: any sensor that has been silent for too long is <b>forced</b> to report.
+          Every scheduler obeys it, so the comparison is fair.</p>
+      </article>
+      <article class="step card">
+        <div class="step-n">5</div>
+        <h3>Learned by trial and error</h3>
+        <p>The GNN starts as the classic model-based scheduler and is improved with <b>reinforcement learning (PPO)</b> on
+          simulated networks and on historical real data, learning when to look ahead and when not to trust the model.</p>
+      </article>
+    </section>
+
+    <section class="card pipeline">
+      <h3>One time slot, end to end</h3>
+      <div class="flow">
+        <div class="node"><b>Sensors</b><span>45 lab thermometers / 325 freeway detectors</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Sink belief</b><span>estimate + uncertainty for every sensor</span></div>
+        <div class="arrow">→</div>
+        <div class="node accent"><b>GNN scheduler</b><span>chooses C sensors (+ forced ones)</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Transmission</b><span>chosen sensors report their real reading</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Update</b><span>Kalman filter refreshes every estimate</span></div>
+      </div>
+      <p class="hint">In the live demo each scheduler runs this loop on the same real readings, side by side, every 5-minute slot.</p>
+    </section>
+
+    <section class="glossary card">
+      <h3>What you see in the live demo</h3>
+      <dl>
+        <dt><span class="sw packet"></span>Moving dot</dt><dd>a sensor transmitting to the sink in this slot</dd>
+        <dt><span class="sw forced"></span>Amber dot</dt><dd>a <b>forced</b> transmission (freshness guarantee)</dd>
+        <dt><span class="sw field"></span>Colour</dt><dd>the reading: what the sink <i>believes</i> (scheduler panels) vs what was <i>measured</i></dd>
+        <dt><span class="sw err"></span>Sink error</dt><dd>how wrong the sink's belief is for each sensor right now</dd>
+        <dt><span class="sw unc"></span>Uncertainty</dt><dd>how unsure the sink is: grows while a sensor is silent</dd>
+      </dl>
+    </section>
+  </main>
+
+  <!-- ============================== RESULTS ============================== -->
+  <main id="view-results" class="view">
+    <section class="hero card">
+      <h1>Results on real sensor data</h1>
+      <p class="lede">Every scheduler was tested on days the system never saw during training, with the same freshness guarantee.</p>
+      <div class="big-kpis" id="big-kpis"></div>
+    </section>
+    <section class="card table-card">
+      <h3>Sink error on held-out test days (lower is better)</h3>
+      <div id="results-table"></div>
+    </section>
+    <section class="gallery" id="gallery"></section>
+  </main>
+
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

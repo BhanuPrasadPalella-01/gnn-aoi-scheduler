@@ -1,0 +1,166 @@
+{
+ "uniform": {
+  "random": {
+   "label": "Random",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -52.85326594774183
+  },
+  "max_age": {
+   "label": "Max-AoI (B1)",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -49.2091352803906
+  },
+  "greedy_diverse": {
+   "label": "Corr-diverse (v4)",
+   "gnn_win_rate": 0.9666666666666667,
+   "wilcoxon_p": 1.0244548320770264e-07,
+   "mean_rel_change_pct": -6.764435638606109
+  },
+  "max_variance": {
+   "label": "Max-uncertainty",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -78.05833662751824
+  },
+  "kalman_greedy": {
+   "label": "Kalman-greedy",
+   "gnn_win_rate": 0.7333333333333333,
+   "wilcoxon_p": 0.007612137123942375,
+   "mean_rel_change_pct": -2.388556701604904
+  },
+  "oracle": {
+   "label": "Oracle-greedy (true \u03a3)",
+   "gnn_win_rate": 0.7,
+   "wilcoxon_p": 0.0027663204818964005,
+   "mean_rel_change_pct": -2.9256829819800005
+  },
+  "gnn_no_mp": {
+   "label": "Ablation: no message passing",
+   "gnn_win_rate": 0.6666666666666666,
+   "wilcoxon_p": 0.049710121005773544,
+   "mean_rel_change_pct": -1.500316101162225
+  }
+ },
+ "clustered": {
+  "random": {
+   "label": "Random",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -69.19847982047379
+  },
+  "max_age": {
+   "label": "Max-AoI (B1)",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -67.29390801178702
+  },
+  "greedy_diverse": {
+   "label": "Corr-diverse (v4)",
+   "gnn_win_rate": 0.36666666666666664,
+   "wilcoxon_p": 0.46454504504799843,
+   "mean_rel_change_pct": 2.4778010423091326
+  },
+  "max_variance": {
+   "label": "Max-uncertainty",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 1.862645149230957e-09,
+   "mean_rel_change_pct": -94.9449246561792
+  },
+  "kalman_greedy": {
+   "label": "Kalman-greedy",
+   "gnn_win_rate": 0.5666666666666667,
+   "wilcoxon_p": 0.6408254038542509,
+   "mean_rel_change_pct": -0.5268306874766409
+  },
+  "oracle": {
+   "label": "Oracle-greedy (true \u03a3)",
+   "gnn_win_rate": 0.5666666666666667,
+   "wilcoxon_p": 0.11907656863331795,
+   "mean_rel_change_pct": -3.5144216656248264
+  },
+  "gnn_no_mp": {
+   "label": "Ablation: no message passing",
+   "gnn_win_rate": 0.8666666666666667,
+   "wilcoxon_p": 3.2391399145126343e-06,
+   "mean_rel_change_pct": -5.152389279806832
+  }
+ },
+ "intel_lab": {
+  "random": {
+   "label": "Random",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 0.001953125,
+   "mean_rel_change_pct": -37.00433297285783
+  },
+  "max_age": {
+   "label": "Max-AoI (B1)",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 0.001953125,
+   "mean_rel_change_pct": -40.50805138307848
+  },
+  "greedy_diverse": {
+   "label": "Corr-diverse (v4)",
+   "gnn_win_rate": 0.8,
+   "wilcoxon_p": 0.048828125,
+   "mean_rel_change_pct": -7.346422825428014
+  },
+  "max_variance": {
+   "label": "Max-uncertainty",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 0.001953125,
+   "mean_rel_change_pct": -19.920493472025345
+  },
+  "kalman_greedy": {
+   "label": "Kalman-greedy",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 0.001953125,
+   "mean_rel_change_pct": -25.816977484471533
+  },
+  "gnn_no_mp": {
+   "label": "Ablation: no message passing",
+   "gnn_win_rate": 0.5,
+   "wilcoxon_p": 1.0,
+   "mean_rel_change_pct": -0.6450592928519648
+  }
+ },
+ "pems_bay": {
+  "random": {
+   "label": "Random",
+   "gnn_win_rate": 0.9333333333333333,
+   "wilcoxon_p": 0.00018310546875,
+   "mean_rel_change_pct": -14.24415186414163
+  },
+  "max_age": {
+   "label": "Max-AoI (B1)",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 6.103515625e-05,
+   "mean_rel_change_pct": -10.68638015682629
+  },
+  "greedy_diverse": {
+   "label": "Corr-diverse (v4)",
+   "gnn_win_rate": 0.8666666666666667,
+   "wilcoxon_p": 0.01806640625,
+   "mean_rel_change_pct": -3.912890186497516
+  },
+  "max_variance": {
+   "label": "Max-uncertainty",
+   "gnn_win_rate": 0.6666666666666666,
+   "wilcoxon_p": 0.5614013671875,
+   "mean_rel_change_pct": -1.9874323865893488
+  },
+  "kalman_greedy": {
+   "label": "Kalman-greedy",
+   "gnn_win_rate": 1.0,
+   "wilcoxon_p": 6.103515625e-05,
+   "mean_rel_change_pct": -13.354203764221845
+  },
+  "gnn_no_mp": {
+   "label": "Ablation: no message passing",
+   "gnn_win_rate": 0.3333333333333333,
+   "wilcoxon_p": 0.22930908203125,
+   "mean_rel_change_pct": 1.180860504251561
+  }
+ }
+}

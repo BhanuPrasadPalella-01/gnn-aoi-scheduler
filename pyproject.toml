@@ -1,0 +1,15 @@
+[project]
+name = "gnn-aoi"
+version = "1.0.0"
+description = "Correlation-aware Age-of-Information scheduling with a graph neural network trained by PPO"
+requires-python = ">=3.11"
+dependencies = ["numpy>=2.0", "scipy>=1.11", "pandas>=2.0", "torch>=2.2", "matplotlib>=3.8", "pillow>=10"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["gnn_aoi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

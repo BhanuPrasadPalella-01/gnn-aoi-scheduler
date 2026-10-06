@@ -1,0 +1,12 @@
+# Render Blueprint: New > Blueprint, pick this repo, Apply.
+services:
+  - type: web
+    name: gnn-aoi-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-serve.txt
+    startCommand: python -m gnn_aoi serve
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5

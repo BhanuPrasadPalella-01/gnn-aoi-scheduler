@@ -1,0 +1,5 @@
+# Minimal dependencies for hosting the live demo (python -m gnn_aoi serve).
+# The CPU-only PyTorch index keeps the install small (no CUDA libraries).
+--extra-index-url https://download.pytorch.org/whl/cpu
+numpy>=2.0
+torch>=2.6,<3

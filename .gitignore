@@ -1,0 +1,10 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+results/data/train_stdout.log
+results/data/*stdout.log
+.claude/
+data/raw/
