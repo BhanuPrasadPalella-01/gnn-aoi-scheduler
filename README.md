@@ -1,5 +1,7 @@
 # GNN-AoI · Correlation-aware sensor scheduling with graph neural networks
 
+[![tests](https://github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler/actions/workflows/tests.yml/badge.svg)](https://github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler/actions/workflows/tests.yml)
+
 ![Real Intel Lab temperature field next to what the sink reconstructs under Max-AoI and under the learned GNN scheduler](results/figures/scheduler.gif)
 
 A sink watches **M sensors** but can poll only **C per slot**. Classic Age-of-Information (AoI)

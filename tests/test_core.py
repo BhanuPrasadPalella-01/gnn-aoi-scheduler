@@ -142,8 +142,9 @@ def test_heterogeneous_field_is_stationary_unit_variance():
     assert np.all(np.linalg.eigvalsh(f.true_model().P0) > 0)
 
 
-real = pytest.mark.skipif(not (Path("data/raw") / "intel_mote_locs.txt").exists(),
-                          reason="real datasets not downloaded")
+real = pytest.mark.skipif(
+    not all((Path("data/processed") / f"{n}.npz").exists() for n in ("intel_lab", "pems_bay")),
+    reason="processed real datasets missing (python -m gnn_aoi download)")
 
 
 @real

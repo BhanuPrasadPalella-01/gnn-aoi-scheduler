@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-serve.txt
+      - name: Install (CPU-only PyTorch)
+        run: pip install -r requirements-serve.txt pytest
+      - name: Run tests
+        run: python -m pytest -q
