@@ -201,12 +201,33 @@ python -m pytest
 
 ## Deploy the live demo (Render)
 
-The repo is ready to host on [Render](https://render.com) as-is:
+The repo is ready to host on [Render](https://render.com) as-is, in either of two ways.
 
-1. On Render: **New → Blueprint**, connect your GitHub, pick this repository, **Apply**.
+**With Render connected to this GitHub account (Blueprint):**
+
+1. On Render: **New → Blueprint**, pick this repository, **Apply**.
    `render.yaml` sets everything: a free Python web service that installs `requirements-serve.txt`
    (NumPy + CPU-only PyTorch) and runs `python -m gnn_aoi serve`, with `/health` as the health check.
-2. Open the URL Render gives you.
+2. Open the URL Render gives you. Every push to `main` redeploys automatically.
+
+**From any Render account (public repository URL):**
+
+1. **New → Web Service → Public Git Repository**, paste
+   `https://github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler`.
+2. Fill in:
+
+   | Setting | Value |
+   |---|---|
+   | Runtime | Python 3 |
+   | Branch | `main` |
+   | Build command | `pip install -r requirements-serve.txt` |
+   | Start command | `python -m gnn_aoi serve` |
+   | Instance type | Free |
+   | Health check path (Advanced) | `/health` |
+   | Environment variable (Advanced) | `PYTHON_VERSION` = `3.13.5` |
+
+3. Create the service. Public-URL services don't redeploy on push: use **Manual Deploy → Deploy latest
+   commit** after changes.
 
 The server binds to Render's `$PORT` automatically and needs about 200 MB of memory, rising to about 420 MB
 once a PEMS-BAY session is open, which fits the free tier's 512 MB. The processed datasets and pre-fitted
