@@ -1,0 +1,309 @@
+\section{Methodology in detail}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=0.6cm and 0.9cm,
+  box/.style={draw=#1,fill=#1!8,rounded corners=3pt,align=center,inner sep=5pt,font=\small,text width=3.0cm},
+  box/.default=blue, arr/.style={-{Stealth[length=2mm]},thick}]
+  \node[box=gray] (data) {Historical data\\(training period)};
+  \node[box,right=of data] (fit) {Fit AR(1) dynamics\\ + innovation covariance};
+  \node[box,right=of fit] (graph) {Correlation graph\\ $\Acorr$};
+  \node[box=black,below=of graph] (sink) {Kalman sink\\ estimate $\hat x_t$, covariance $P_t$};
+  \node[box=green!50!black,left=of sink] (guard) {Freshness guard\\ forced set $\mathcal F_t$};
+  \node[box,left=of guard] (gnn) {GNN scheduler\\ picks $C-|\mathcal F_t|$ more};
+  \node[box=orange,below=of guard] (net) {Sensors transmit\\ $y_t = x_t[S_t]+n_t$};
+  \draw[arr] (data)--(fit); \draw[arr] (fit)--(graph); \draw[arr] (graph)--(sink);
+  \draw[arr] (sink)--(guard); \draw[arr] (guard)--(gnn);
+  \draw[arr] (gnn) |- (net); \draw[arr] (net) -| (sink);
+  \draw[arr,dashed] (graph.north) -- ++(0,0.4) -| node[pos=0.25,above,font=\scriptsize]{graph and features} (gnn.north);
+\end{tikzpicture}
+\caption{The complete pipeline. The model and graph are fitted once on training data; the loop at the bottom runs
+every slot.}
+\end{figure}
+
+\subsection{System model}
+
+\begin{itemize}
+  \item $M$ sensors with fixed positions. Time is divided into slots $t=1,2,\dots$ (5 minutes on real data).
+  \item In each slot the sink chooses a set $S_t$ of at most $C$ sensors (\textbf{capacity constraint}).
+  \item Optionally, sensors closer than an \textbf{interference radius} cannot transmit in the same slot (used only in
+        the synthetic interference study; real-data experiments have no interference).
+  \item Polled sensors send their reading with a small measurement noise: $y_t = x_t[S_t] + n_t$,
+        $n_t\sim\mathcal N(0,rI)$, $r=10^{-3}$.
+  \item Every sensor's age must satisfy $a_i(t)\le F$ (\textbf{freshness constraint}).
+  \item Slot timeline: (1) the field moves one step, (2) the sink predicts, (3) the freshness guard computes forced
+        sensors, (4) the scheduler completes the poll set, (5) the polled sensors transmit, (6) the sink updates,
+        ages are updated, and the error is measured.
+\end{itemize}
+
+\subsection{Field model and the synthetic simulator}
+
+Readings are modelled as a stationary, first-order autoregressive process with correlated innovations:
+\[
+  x_t = \operatorname{diag}(\rho)\,x_{t-1} + w_t,\qquad w_t\sim\mathcal N(0,Q).
+\]
+$\rho_i\in[0,1)$ says how much of sensor $i$'s value carries over to the next slot (temporal correlation); the
+off-diagonal entries of $Q$ say how the sensors' surprises move together (spatial correlation).
+
+\textbf{Synthetic simulator.} To test on thousands of controlled layouts, \texttt{CorrelatedField} generates fields
+with a known ground truth:
+\begin{enumerate}
+  \item Place $M$ sensors in the unit square: \emph{uniform} (spread evenly) or \emph{clustered} (around 2--7 random
+        centres with spread 0.07).
+  \item Spatial correlation by an RBF kernel: $\Sigma_{ij}=\exp\!\big(-\lVert p_i-p_j\rVert^2/(2\ell^2)\big)$, where
+        $\ell$ (length scale, default 0.3) controls how far correlation reaches.
+  \item Per-sensor speed $\rho_i = \bar\rho \pm$ spread (default $\bar\rho=0.9$).
+  \item Innovations $Q = D\Sigma D$ with $D=\operatorname{diag}(\sqrt{1-\rho_i^2})$, so every sensor has unit variance.
+        The stationary covariance is $P_{0,ij}=Q_{ij}/(1-\rho_i\rho_j)$.
+\end{enumerate}
+The \textbf{layout seed} (positions, $\Sigma$, $\rho$) and the \textbf{noise seed} are separate. This fixes the
+mid-semester bug: the graph is always estimated on the same layout the scheduler runs on (a unit test checks the
+estimated and true correlations agree with $r>0.95$). Every policy is evaluated on the \emph{identical} trajectory
+(the field is rewound between policies), so differences come only from the scheduling.
+
+\subsection{Fitting the model from data}
+
+The sink is never told the true model; it fits one from data (\texttt{fit\_model}). Given a block of training
+readings $x_1,\dots,x_T$ (standardised):
+\begin{align*}
+  \hat\rho_i &= \frac{\sum_t x_{t-1,i}\,x_{t,i}}{\sum_t x_{t-1,i}^2}\quad(\text{clipped to }[0,0.9995]),\\
+  e_t &= x_t - \hat\rho \odot x_{t-1}\quad(\text{innovations}),\qquad
+  \hat Q = \operatorname{cov}(e_t)+10^{-6}I,\qquad \hat P_0=\operatorname{cov}(x_t)+10^{-6}I.
+\end{align*}
+\begin{whybox}[Why one-step least squares?]
+It is the maximum-likelihood fit of an AR(1) model and is cheap even for 325 sensors and months of data. We also tried
+fitting the autocorrelation at longer lags; on the real datasets it made the sink 4--17$\times$ over-confident (its
+reported uncertainty was far below its actual error), so one-step fitting was kept.
+\end{whybox}
+For synthetic layouts the sink fits on a \textbf{pilot phase} of 1000 slots in which it hears every sensor. For real
+data it fits on the training period only.
+
+\subsection{The correlation graph}
+
+From $\hat Q$ we compute the innovation correlation $\hat r_{ij}=\hat Q_{ij}/\sqrt{\hat Q_{ii}\hat Q_{jj}}$ and keep
+strong edges:
+\[
+  (\Acorr)_{ij} = |\hat r_{ij}|\cdot\mathbf 1\big[|\hat r_{ij}|\ge 0.3\big],\qquad (\Acorr)_{ii}=0.
+\]
+\begin{whybox}[Why innovations, not raw readings?]
+Raw readings of almost all sensors are correlated simply because they share trends (every room warms during the day,
+every freeway slows at rush hour). That would connect everything to everything. Innovations remove the predictable
+part, so an edge means ``when one sensor is surprised, the other is surprised in the same way'': exactly the
+information that lets the sink infer one from the other. The threshold 0.3 keeps meaningful edges and drops noise.
+\end{whybox}
+
+\subsection{The Kalman sink}
+
+The sink holds a mean $m$ and covariance $P$:
+\begin{align*}
+  \textbf{Predict:}\quad & m^- = \rho\odot m,\qquad P^- = D_\rho P D_\rho + Q,\qquad D_\rho=\operatorname{diag}(\rho)\\
+  \textbf{Update:}\quad & K = P^-_{:,S}\,\big(P^-_{SS}+rI\big)^{-1},\quad m = m^- + K\,(y - m^-_S),\quad
+  P = P^- - K\,P^-_{S,:}
+\end{align*}
+Here $S$ is the set of polled sensors. Polling sensor $j$ reduces $P_{ii}$ for every $i$ with $P_{ij}\neq0$: the
+correlated neighbours learn too (a unit test checks this). $P$ does not depend on the actual readings, only on
+\emph{who} was polled, so the scheduler can plan with it.
+
+\textbf{Variance gain.} If sensor $i$ alone were polled next, the total uncertainty would drop by
+\[
+  g_i = \frac{\sum_k P_{ki}^2}{P_{ii}+r}.
+\]
+This single number drives the Kalman-greedy baseline and the first term of our decoder.
+
+\begin{whybox}[Why a Kalman filter, not a neural forecaster?]
+It is optimal for the linear-Gaussian model, needs no training, gives a calibrated uncertainty $P$ (a unit test
+checks that the predicted variance matches the actual error within 8\%), and updates in milliseconds. A learned
+forecaster would not give us $P$, which is what makes correlation-aware scheduling possible.
+\end{whybox}
+
+\subsection{The freshness guard}
+
+Before any scheduler acts:
+\begin{enumerate}
+  \item Find all sensors with $a_i(t)\ge F$.
+  \item Sort them oldest first and take up to $C$ of them that do not conflict with each other: this is the forced
+        set $\mathcal F_t$.
+  \item The scheduler only fills the remaining $C-|\mathcal F_t|$ places.
+  \item The environment checks (asserts) in every slot that capacity, conflicts and freshness hold.
+\end{enumerate}
+We use $F=\lfloor 3M/C\rfloor$: three times the round-robin period. Intel: $F=\lfloor 3\cdot45/6\rfloor=22$ slots
+(1.8 hours). PEMS-BAY: $F=\lfloor3\cdot325/40\rfloor=24$ slots (2 hours). Synthetic headline: $F=15$.
+
+\begin{whybox}[Why a hard guard instead of a penalty in the reward?]
+A penalty can always be traded away: if ignoring a sensor reduces error enough, the policy will ignore it. A guard
+makes the guarantee unconditional and identical for every scheduler, which also makes comparisons fair.
+Section 8 shows what happens without it: Kalman-greedy never polls 18 of 50 sensors.
+\end{whybox}
+
+\begin{whybox}[Why $F = 3M/C$?]
+Round robin needs $M/C$ slots to visit everyone. A bound equal to $M/C$ would force pure round robin and leave no
+freedom; a very large bound would allow near-starvation. Three times the period gives the scheduler real freedom
+while still keeping every sensor within a couple of hours on real data.
+\end{whybox}
+
+\subsection{Objective and MDP formulation}
+
+\textbf{Objective.}
+\[
+  \min_\pi\ \mathbb E\Big[\frac{1}{TM}\sum_{t=1}^T\lVert x_t-\hat x_t\rVert^2\Big]
+  \quad\text{s.t.}\quad |S_t|\le C,\ \text{no conflicts in } S_t,\ a_i(t)\le F\ \ \forall i,t.
+\]
+
+\textbf{As an MDP:}
+\begin{itemize}
+  \item \textbf{State}: ages $a(t)$, which sensors were polled last slot, the sink's covariance $P_t$, the learned
+        $\hat\rho$ and graph $\Acorr$, the conflict matrix, the forced set.
+  \item \textbf{Action}: an ordered list of $C-|\mathcal F_t|$ sensors to poll.
+  \item \textbf{Transition}: the field evolves, the sink predicts and updates, ages change.
+  \item \textbf{Reward}: $r_t = -(1-\gamma)\log(\text{error}_t + 0.005)$ (details in 5.9).
+\end{itemize}
+
+\subsection{The GNN scheduler}
+
+\subsubsection{Node features (13 per sensor)}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}rlX@{}}
+\toprule
+\# & Feature & Why it is there \\
+\midrule
+1 & $\min(a_i/(M/C),6)/6$ & Age relative to the round-robin period (comparable across network sizes) \\
+2 & polled last slot (0/1) & Recently polled sensors usually need no repeat \\
+3 & $P_{ii}$ & The sink's uncertainty about sensor $i$ \\
+4 & $\log(P_{ii}+10^{-3})/7$ & Same on a log scale (uncertainty spans orders of magnitude) \\
+5 & $g_i/M$ & How much total uncertainty polling $i$ removes \\
+6 & $\log(g_i/M+10^{-4})/9$ & Same on a log scale \\
+7 & forced (0/1) & Already committed by the guard \\
+8 & slack $=\mathrm{clip}((F-a_i)/F,0,1)$ & How soon the guard will force this sensor \\
+9 & $C/M$ & How scarce the channel is \\
+10 & $\hat\rho_i$ & How persistent the sensor is \\
+11 & $\log(1-\hat\rho_i^2+10^{-5})/12$ & How fast it drifts away from its last value \\
+12 & degree in $\Acorr$ / $(M-1)$ & How connected (redundant) it is \\
+13 & guard on (0/1) & Whether a freshness bound applies \\
+\bottomrule
+\end{tabularx}
+\end{center}
+All features are scaled to roughly $[0,1]$ so one network works across network sizes.
+
+\subsubsection{Two graphs}
+\begin{itemize}
+  \item $\Acorr$: the static correlation graph (who is correlated in general).
+  \item $\Apost$ with $(\Apost)_{ij}=|P_{ij}|/\sqrt{P_{ii}P_{jj}}$: the sink's \emph{current} posterior correlation,
+        recomputed every slot (who is redundant \emph{right now}, given what was just polled).
+\end{itemize}
+Both are row-normalised ($\tilde A = A/\text{row sum}$) before use.
+
+\subsubsection{Encoder}
+\begin{align*}
+  h^{(0)}_i &= \mathrm{MLP}_{\text{in}}(\text{features}_i)\in\mathbb R^{64}\\
+  h^{(\ell+1)} &= \mathrm{LN}\Big(h^{(\ell)} + \mathrm{MLP}_\ell\big[\,h^{(\ell)},\ \tilde\Acorr h^{(\ell)},\ \tilde\Apost h^{(\ell)},\ \bar h^{(\ell)}\,\big]\Big),\quad \ell=0,1,2
+\end{align*}
+$\bar h$ is the mean over all sensors (global context). Each MLP is $4d\to2d\to d$ with GELU. Three layers let
+information travel three hops. The residual connection and LayerNorm keep training stable.
+
+\subsubsection{Residual pointer decoder}
+Sensors are picked one at a time. At each step the score (logit) of sensor $i$ is
+\[
+  \text{logit}_i = \underbrace{\alpha\log g_i}_{\text{Kalman-greedy}} + \underbrace{f_\theta(h_i)}_{\text{learned correction}}
+  + \underbrace{\textstyle\sum_{j\in\text{picked}} G_{ij}}_{\text{learned interaction}},\qquad G_{ij}=\frac{q_i^\top k_j}{\sqrt{32}}.
+\]
+\begin{enumerate}
+  \item Mask sensors already picked, forced, or in conflict with a pick.
+  \item Softmax over the remaining scores; \emph{sample} a sensor during training, take the \emph{argmax} at test time.
+  \item Condition $P$ on that pick (Kalman update), recompute every $g_i$, add $G_{\cdot,\text{pick}}$.
+  \item Repeat until the slot is full.
+\end{enumerate}
+
+\textbf{Residual initialisation.} The output layers of $f_\theta$ and $q$ are initialised to zero, so at the start
+$f_\theta=G=0$ and the decoder \emph{is} Kalman-greedy (with $\alpha=4$ the softmax is sharp). A unit test checks that
+the untrained network makes exactly the same choices as Kalman-greedy for 40 slots.
+
+\textbf{Plackett--Luce probability.} The probability of the ordered pick list is the product of the softmax
+probabilities at each step, so PPO gets exact log-probabilities (also unit-tested).
+
+Size: 137{,}282 parameters. The same weights run for any $M$.
+
+\begin{whybox}[Why a residual decoder?]
+Our first attempt trained a GNN ``student'' to imitate Kalman-greedy (behaviour cloning) and then fine-tune; it never
+fully matched the teacher. Building Kalman-greedy \emph{into} the network means training starts from the strongest
+model-based scheduler, and RL only has to learn \emph{when deviating from greedy pays off later}, for example polling a
+sensor before the guard forces it at a bad moment, or not trusting a wrong model.
+\end{whybox}
+
+\subsection{Training with PPO}
+
+\begin{algorithm}[htbp]
+\caption{PPO training of the GNN scheduler}
+\begin{algorithmic}[1]
+\State Actor $\pi_\theta$ = Kalman-greedy at init; critic $V_\phi$ (2-layer GNN)
+\For{iteration $=1..400$}
+  \State Sample a batch of environments: synthetic (random $M\in[10,100]$, $C$, $\ell$, $\rho$, layout, $F$, interference)
+  \Statex\hspace{1.3em}or, with probability 0.35, replays of a real dataset's training period
+  \For{$t=1..96$ slots}
+    \State $\mathcal F_t\gets$ guard; sample picks from $\pi_\theta$; step; reward $r_t=-(1-\gamma)\log(\text{err}_t+0.005)$
+  \EndFor
+  \State Advantages with GAE ($\gamma=0.95$, $\lambda=0.9$)
+  \For{4 epochs over minibatches of 512}
+    \State ratio $\eta=\pi_\theta/\pi_{\text{old}}$; loss $-\min(\eta\hat A,\ \mathrm{clip}(\eta,0.85,1.15)\hat A) - 0.002\cdot\text{entropy}$
+    \State Adam step (lr $10^{-4}$ actor, $5\times10^{-4}$ critic, grad-norm clip 0.5)
+  \EndFor
+  \State Every 10 iterations: validate, keep the best checkpoint
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Training scenarios.} Each synthetic batch draws: $C=\mathrm{round}(M\cdot U[0.08,0.35])$; length scale
+log-uniform in $[0.05,0.45]$; $\bar\rho\in U[0.6,0.995]$; per-sensor spread with probability 0.6; clustered layout with
+probability 0.4; freshness bound $3M/C$ with probability 0.7 (else off); interference with probability 0.2. The
+number of parallel environments shrinks for large $M$ ($32\cdot(40/M)^2$, clipped to 8--32) to keep memory constant.
+
+\textbf{Reward.} For synthetic environments the score is the sink's true posterior variance (computed with the true
+model); for real replays it is the actual squared error against the recorded readings. The logarithm puts small
+networks (large errors) and large networks (small errors) on the same scale, and the $(1-\gamma)$ factor keeps
+returns near the reward scale.
+
+\textbf{Real-data replays.} On a real dataset's training period, the sink's model is fitted on the first 70\%, the
+episodes run on the next 20\% (on compact sub-networks: a random sensor and its nearest neighbours), and the last
+10\% is validation. Because the model is fitted on different days than the episode, the policy experiences the
+model mismatch it will face at test time.
+
+\textbf{Validation and selection.} Validation uses four fixed synthetic scenarios (default $M=20,C=5,F=12$;
+clustered; heterogeneous $\rho$; $M=60,C=8,F=22,\ell=0.15$) with layout seeds 9000+, plus real validation slices.
+The checkpoint with the best validation score is kept. Test layouts use seeds 10000+ and real test periods; neither
+is ever seen in training.
+
+\textbf{Run.} 400 PPO iterations (resumable; warm-started from an earlier run), about 35 minutes on a laptop CPU.
+The critic is warmed up for 15 iterations before the actor starts updating.
+
+\subsection{Baselines and evaluation protocol}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Scheduler} & \textbf{Rule (after the forced sensors)} \\
+\midrule
+Random & Pick uniformly at random. Lower reference. \\
+Max-AoI (B1) & Pick the oldest sensors (ties by index, so round robin). AoI-based scheduling \cite{2,16}. \\
+Corr-diverse (v4) & Pick the oldest; then multiply every other sensor's score by $(1-|\hat r|)$ with the picked one; repeat. Our mid-semester heuristic. \\
+Max-uncertainty & Pick the largest $P_{ii}$, ignoring overlap between picks. \\
+Kalman-greedy & Repeatedly pick the largest $g_i$ and condition $P$ on it \cite{19}. Strongest model-based baseline. \\
+Oracle-greedy & Kalman-greedy using the \emph{true} covariance (synthetic only; not deployable). \\
+GNN-PPO (ours) & Learned policy (greedy decode). \\
+Ablation & Our model retrained with the message passing removed. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Metrics.}
+\begin{itemize}
+  \item \textbf{MSE}: mean over sensors and slots of $(x-\hat x)^2$ in standardised units.
+  \item \textbf{RMSE in units}: the same error converted back to $^\circ$C or mph (what the faculty can relate to).
+  \item \textbf{Mean AoI} and \textbf{max AoI}; \textbf{starved} = number of sensors never polled.
+  \item \textbf{Decision time} per slot (milliseconds on CPU).
+\end{itemize}
+The first 50 slots of each synthetic episode are burn-in and not scored.
+
+\textbf{Statistics.} Mean $\pm$ 95\% CI ($1.96\cdot\text{sd}/\sqrt n$) over test layouts or windows. Because every
+scheduler runs on the identical readings, we compare them \emph{paired}: the \textbf{win rate} is the share of
+windows where the GNN had lower error, and the \textbf{Wilcoxon signed-rank test} gives the p-value.

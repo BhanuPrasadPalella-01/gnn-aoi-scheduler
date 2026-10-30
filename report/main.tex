@@ -1,0 +1,92 @@
+% GNN-AoI: complete project guide
+% Compile: tectonic main.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs,longtable,tabularx,array,makecell}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true,linkcolor=NavyBlue,urlcolor=NavyBlue,citecolor=NavyBlue]{hyperref}
+
+\graphicspath{{../results/figures/}{../presentation/figures/}}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=0.2em,topsep=0.3em}
+\renewcommand{\arraystretch}{1.18}
+
+\definecolor{accent}{HTML}{2563EB}
+\titleformat{\section}{\Large\bfseries\color{accent}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.6em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{}
+\fancyhead[R]{\small\color{gray}GNN-AoI: Complete Project Guide \ $\cdot$\ \nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\newtcolorbox{whybox}[1][Why?]{colback=blue!4,colframe=blue!55!black,fonttitle=\bfseries,title={#1},breakable,
+  left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{saybox}[1][How to explain it to your faculty]{colback=green!5,colframe=green!45!black,fonttitle=\bfseries,
+  title={#1},breakable,left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{notebox}[1][Note]{colback=orange!6,colframe=orange!70!black,fonttitle=\bfseries,title={#1},breakable,
+  left=6pt,right=6pt,top=4pt,bottom=4pt}
+\newtcolorbox{keybox}[1][Key idea]{colback=gray!6,colframe=gray!60!black,fonttitle=\bfseries,title={#1},breakable,
+  left=6pt,right=6pt,top=4pt,bottom=4pt}
+
+\newcommand{\fig}[3][\textwidth]{\begin{figure}[htbp]\centering\includegraphics[width=#1]{#2}\caption{#3}\end{figure}}
+\renewcommand{\cite}[1]{[#1]}
+\newcommand{\Acorr}{A_{\mathrm{corr}}}
+\newcommand{\Apost}{A_{\mathrm{post}}}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\color{accent}\large\bfseries COMPLETE PROJECT GUIDE\par}
+  \vspace{0.8cm}
+  {\Huge\bfseries GNN-AoI\par}
+  \vspace{0.4cm}
+  {\LARGE Correlation-Aware Scheduling of\\ Real Sensor Networks\par}
+  \vspace{0.6cm}
+  {\large A graph neural network, trained with reinforcement learning, that decides which sensors may
+  transmit, while every sensor stays fresh by construction\par}
+  \vspace{1.5cm}
+  \includegraphics[width=0.85\textwidth]{hero.png}
+  \vspace{1.5cm}
+
+  {\large\bfseries Bhanu Prasad Palella \quad Gullanki Bhagya Lakshmi\\[0.3em] Pavna Preethikha \quad Madhumitha S\par}
+  \vspace{0.5cm}
+  {\large Amrita School of Artificial Intelligence\par}
+  \vspace{0.3cm}
+  {\normalsize Guide: [guide's name]\par}
+  \vfill
+  {\small Everything about the project: the problem, the research gaps, the objectives, the full methodology,
+  every implementation step and design decision, every result and how to explain it.\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{parts/01_overview}
+\input{parts/02_glossary}
+\input{parts/03_background}
+\input{parts/04_problem}
+\input{parts/05_methodology}
+\input{parts/06_implementation}
+\input{parts/07_decisions}
+\input{parts/08_results}
+\input{parts/09_conclusion}
+
+\end{document}

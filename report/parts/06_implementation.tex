@@ -1,0 +1,150 @@
+\section{Implementation, step by step}
+
+This is the order in which the project was actually built.
+
+\subsection{Step 1: Review the mid-semester prototype}
+The prototype (now in \texttt{legacy/}) used 5 sensors and random data. Reviewing it, we found the seed bug: the
+correlation graph was estimated on layout seed 42 but the scheduler was evaluated on seed 123. Because the seed also
+placed the sensors, the graph described a different set of sensors (correlation $r=0.04$ with the truth). Decision:
+rebuild as a clean, tested Python package and keep the legacy code only for reference.
+
+\subsection{Step 2: Simulator, environment and Kalman sink}
+\begin{itemize}
+  \item \texttt{config.py}: one \texttt{Scenario} object holds every setting ($M$, $C$, length scale, $\rho$, layout,
+        noise, interference, pilot length, graph threshold, freshness bound).
+  \item \texttt{simulator.py}: the correlated field (Section 5.2), with separate layout and noise seeds, and
+        \texttt{fit\_model}.
+  \item \texttt{graphs.py}: correlation and interference graphs.
+  \item \texttt{estimator.py}: the Kalman sink.
+  \item \texttt{env.py}: the slot loop, ages, the freshness guard and safety assertions, and per-slot metrics. It can
+        \emph{rewind} the field so every policy sees identical readings.
+\end{itemize}
+Tests written at this stage: the field has the target covariance, the graph matches the sensors it is used on, the
+Kalman variance is calibrated, polling reduces neighbours' uncertainty.
+
+\subsection{Step 3: Baselines and the evaluation harness}
+\texttt{policies/baselines.py} implements the five baselines and the oracle; \texttt{selection.py} has the shared
+greedy and feasibility routines; \texttt{evaluate.py} runs episodes in parallel across CPU cores and summarises
+metrics with confidence intervals. A parametrised test runs every baseline and checks it never breaks freshness,
+capacity or interference.
+
+\subsection{Step 4: The GNN and how its design evolved}
+\begin{enumerate}
+  \item First version: a GNN that scored sensors, trained by behaviour cloning on Kalman-greedy's choices. It
+        under-performed its own teacher.
+  \item Final version: the residual pointer decoder (Section 5.8). It starts as Kalman-greedy exactly, so learning only
+        has to add improvements.
+\end{enumerate}
+Files: \texttt{gnn/features.py} (13 features, two graphs, batching), \texttt{gnn/model.py} (encoder, decoder, critic),
+\texttt{policies/gnn\_policy.py} (wraps the model as a scheduler).
+
+\subsection{Step 5: PPO training}
+\texttt{gnn/train.py} implements Algorithm~1. Two engineering fixes mattered:
+\begin{itemize}
+  \item \textbf{Environment reset bug}: resetting an environment did not rewind the field, so rollouts and evaluation
+        saw different readings. Fixed with \texttt{mark()}/\texttt{rewind()} and a regression test.
+  \item \textbf{Long runs killed}: training stopped when the terminal session closed. We made training
+        \textbf{resumable} (state saved regularly) and ran it detached; the final run was warm-started from an
+        earlier checkpoint.
+\end{itemize}
+
+\subsection{Step 6: Real datasets}
+Following our faculty's request for more sensors and real data, \texttt{datasets.py} adds two datasets.
+
+\textbf{Intel Berkeley Research Lab} \cite{25}.
+\begin{enumerate}
+  \item Raw data: 54 Mica2Dot motes, temperature about every 31 seconds, plus mote positions in metres on a
+        40\,m $\times$ 31\,m floor.
+  \item Keep readings between 5 and 45\,$^\circ$C (removes sensor faults), from 28 Feb 2004 01:00 to 19 Mar 2004 (after
+        that, batteries die and data degrades).
+  \item Average into 5-minute slots.
+  \item Keep motes with at least 70\% of slots present; fill gaps up to 2 hours (24 slots) by interpolation; drop
+        motes still incomplete. Result: \textbf{45 sensors}.
+  \item Chronological split: first 55\% for training (28 Feb -- 8 Mar), the rest for testing (9 -- 18 Mar).
+  \item The recording has \textbf{outages} (network down, e.g.\ 10--11 and 15--16 Mar). We record where each continuous
+        segment ends; test windows never cross a gap, and a live session stops cleanly at one (tested).
+\end{enumerate}
+
+\textbf{PEMS-BAY} \cite{24}.
+\begin{enumerate}
+  \item 325 loop detectors in the San Jose area, average speed every 5 minutes, 1 Jan -- 30 Jun 2017 (public release
+        accompanying DCRNN, Zenodo record 5146275).
+  \item Zero speeds mark missing data; they are interpolated.
+  \item Training: January--April. Test: May--June.
+\end{enumerate}
+
+\textbf{Common preprocessing.}
+\begin{itemize}
+  \item \textbf{Daily profile}: for every 5-minute time of day (and for PEMS-BAY separately for weekdays and weekends),
+        the average reading over the training period, smoothed over 5 neighbouring bins. The sink knows that ``rush
+        hour happens''; what it must track is how \emph{today} differs from a typical day.
+  \item \textbf{Standardise} the deviation from the profile by its training standard deviation.
+  \item All statistics come from the training period only; a test checks that the test period never leaks into the
+        model and that replayed readings match the raw data exactly.
+  \item Memory: float32 storage, chunked computation, a small profile table, and pre-fitted model files reduced memory
+        from about 1.75\,GB to 200--400\,MB.
+\end{itemize}
+
+\textbf{Test windows.} Intel: 10 disjoint windows of 200 slots in the test period. PEMS-BAY: 15 windows of 288 slots
+(one day each). Capacity $C=6$ (Intel) and $C=40$ (PEMS-BAY), about one-eighth of the sensors.
+
+\subsection{Step 7: Experiments and figures}
+\texttt{experiments.py} runs every study and writes JSON to \texttt{results/data/}; \texttt{viz/} draws the figures in
+\texttt{results/figures/}:
+\begin{itemize}
+  \item synthetic main benchmark (30 layouts, uniform and clustered), no-guard study, capacity / correlation / size /
+        interference / pilot-length sweeps;
+  \item real benchmark, real capacity sweeps, PEMS-BAY size sweep, poll-frequency map, slot-by-slot replay;
+  \item significance tests and decision times.
+\end{itemize}
+
+\subsection{Step 8: Live demo}
+\begin{itemize}
+  \item \texttt{live.py}: a \texttt{LiveSession} replays a real test day slot by slot and runs several schedulers on
+        identical readings. Each step returns the readings, each scheduler's picks (forced ones marked), the GNN's pick
+        probabilities, and the sink's estimates and uncertainties.
+  \item \texttt{server.py}: a small HTTP server with a JSON API: \texttt{/api/datasets}, \texttt{/api/session},
+        \texttt{/api/step}, \texttt{/api/results}, \texttt{/health}.
+  \item \texttt{frontend/}: plain HTML/CSS/JavaScript with Canvas: the measured field and each scheduler's view of it,
+        the error over time, ``why these sensors'' bars, and a transmission log.
+\end{itemize}
+
+\subsection{Step 9: Testing, CI and release}
+21 tests (\texttt{tests/test\_core.py}) run on every push with GitHub Actions. The repository is public:
+\texttt{github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler}.
+
+\subsection{Code map and commands}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\texttt{gnn\_aoi/config.py} & Scenario settings \\
+\texttt{gnn\_aoi/simulator.py} & Synthetic field, AR(1) model, \texttt{fit\_model} \\
+\texttt{gnn\_aoi/datasets.py} & Intel Lab and PEMS-BAY loaders, profiles, outages, test windows \\
+\texttt{gnn\_aoi/graphs.py} & Correlation and interference graphs \\
+\texttt{gnn\_aoi/estimator.py} & Kalman sink \\
+\texttt{gnn\_aoi/env.py} & Slot loop, AoI, freshness guard, metrics \\
+\texttt{gnn\_aoi/selection.py} & Greedy variance reduction, feasible top-$C$ \\
+\texttt{gnn\_aoi/policies/} & Baselines and the GNN policy \\
+\texttt{gnn\_aoi/gnn/} & Features, model, PPO training \\
+\texttt{gnn\_aoi/evaluate.py}, \texttt{experiments.py} & Benchmarks, sweeps, statistics \\
+\texttt{gnn\_aoi/live.py}, \texttt{server.py}, \texttt{frontend/} & Live demo \\
+\texttt{gnn\_aoi/viz/} & Figures and animation \\
+\texttt{tests/} & 21 tests \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\texttt{python -m gnn\_aoi download} & fetch the raw datasets \\
+\texttt{python -m gnn\_aoi train} & train the GNN with PPO \\
+\texttt{python -m gnn\_aoi experiments} & run all experiments \\
+\texttt{python -m gnn\_aoi figures} & draw all figures \\
+\texttt{python -m gnn\_aoi serve} & live demo at \texttt{http://localhost:8000} \\
+\texttt{python -m pytest} & run the tests \\
+\bottomrule
+\end{tabular}
+\end{center}

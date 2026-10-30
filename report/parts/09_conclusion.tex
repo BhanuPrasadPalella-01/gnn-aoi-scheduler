@@ -1,0 +1,109 @@
+\section{Conclusion, limitations, future work and viva preparation}
+
+\subsection{Limitations (state these honestly)}
+\begin{itemize}
+  \item \textbf{Ablation ties on real data.} On Intel Lab and PEMS-BAY, the model without message passing performs as
+        well as the full GNN. The real-data gain comes mainly from the learned residual decoder (the correction on top of
+        Kalman-greedy and the pairwise term); message passing helps measurably only on synthetic layouts.
+  \item \textbf{Large networks.} On synthetic networks with 100 or more sensors (beyond the training range), Kalman-greedy
+        is 8--12\% better than the GNN. Training on larger networks is the obvious fix.
+  \item \textbf{Smaller gains on traffic.} PEMS-BAY sensors are less redundant than lab thermometers, so the gain is
+        2.4\% in RMSE.
+  \item \textbf{Model assumptions.} The sink assumes linear-Gaussian AR(1) dynamics; the channel is ideal apart from
+        capacity and interference (no packet loss).
+  \item \textbf{Offline training.} The correlation model is fitted once; it does not adapt if the environment changes.
+\end{itemize}
+
+\begin{saybox}[If asked: ``What does not work?'']
+``Two things. On real data, removing the message passing does not hurt, so the improvement there comes from the
+learned decoder rather than the graph layers. And on simulated networks larger than we trained on, plain Kalman-greedy is
+still about 10 percent better. Both point to clear next steps.''
+\end{saybox}
+
+\subsection{Conclusion}
+\begin{itemize}
+  \item We identified, from the literature, that correlation-aware AoI work is analytical and hand-modelled, learned
+        schedulers use interference graphs and soft freshness limits, and real-data evidence is scarce.
+  \item We built \textbf{GNN-AoI}: a scheduler that learns the correlation structure from data, tracks the field with a
+        Kalman sink, chooses transmissions with a GNN pointer decoder initialised as Kalman-greedy and trained with PPO,
+        and guarantees every sensor's freshness by construction.
+  \item On \textbf{real held-out data} it lowers the sink's error by \textbf{20\%} (Intel Lab, 45 sensors) and
+        \textbf{2.4\%} (PEMS-BAY, 325 sensors) compared with AoI-based scheduling, and beats Kalman-greedy in
+        \textbf{every} test window of both datasets.
+  \item On simulated fields it halves the error of AoI scheduling and beats greedy selection that knows the true
+        covariance.
+  \item It runs in milliseconds, comes as a tested open-source package with reproducible experiments, and includes a
+        live demo of real transmissions.
+  \item The central lesson: \textbf{fresher is not the same as better-informed}. Using correlations to decide who
+        transmits gives the sink a much better picture with the same channel, as long as freshness is still
+        guaranteed.
+\end{itemize}
+
+\subsection{Future work}
+\begin{itemize}
+  \item Lossy channels with retransmissions (HARQ) \cite{6}.
+  \item Online re-fitting of the correlation graph as seasons change or sensors are added.
+  \item Training on larger networks; sparse message passing for thousands of sensors.
+  \item Non-linear sinks (graph-recurrent forecasters such as DCRNN \cite{24}) in place of the Kalman filter.
+  \item Distributed scheduling: each gateway runs the same shared GNN locally.
+  \item A hardware pilot on a LoRa or Zigbee testbed.
+\end{itemize}
+
+\subsection{Likely viva questions}
+\begin{description}[style=nextline,leftmargin=0.6cm]
+  \item[What is Age of Information?] Slots since the sink last heard from a sensor. It measures freshness, not how much
+        the sink knows.
+  \item[Why not just minimise AoI?] Because correlated sensors make some transmissions redundant. Max-AoI has the
+        lowest age but twice the error of our method (Figure ``fresher is not better-informed'').
+  \item[What exactly does the GNN output?] A probability for each sensor at each pick step; the top choice is taken,
+        the Kalman covariance is updated, and the next sensor is chosen, until the slot is full.
+  \item[What is the reward?] $-(1-\gamma)\log(\text{error}+0.005)$ per slot: lower error, higher reward.
+  \item[Why PPO and not DQN?] Choosing 6 of 45 sensors has millions of combinations; DQN needs a value per action. PPO
+        trains our step-by-step selection policy directly and stably.
+  \item[Why does the GNN start as Kalman-greedy?] So it never starts worse than the strongest classical method; RL only
+        learns improvements. Behaviour cloning, which we tried first, never matched the teacher.
+  \item[How do you guarantee freshness?] Sensors at age $F$ are forced into the slot before the scheduler acts; the
+        environment asserts it every slot, and tests check every scheduler.
+  \item[How do you avoid data leakage?] Chronological split; the profile, standardisation and model come only from the
+        training period; validation uses separate data; a unit test checks it.
+  \item[Why two datasets?] One with strong spatial correlation (indoor temperature), one large and less redundant
+        (freeway traffic): they show where the method helps a lot and where it helps a little.
+  \item[Why does Kalman-greedy lose on PEMS-BAY?] Its fitted model is over-confident: it believes it knows sensors it
+        does not, so it polls them too rarely. Our policy saw this mismatch during training on real replays.
+  \item[Is the improvement statistically significant?] Yes: Intel 10/10 windows vs.\ Kalman-greedy ($p=0.002$), PEMS-BAY
+        15/15 ($p=6\times10^{-5}$), synthetic 73\% of layouts ($p=0.008$), Wilcoxon signed-rank tests.
+  \item[How long does a decision take?] 4.6\,ms (Intel), 37\,ms (PEMS-BAY) on a laptop CPU; the slot is 5 minutes.
+  \item[What is your base paper and what did you add?] Ramakanth, Tripathi \& Modiano, INFOCOM 2024. We add multiple polls
+        per slot, correlations learned from data, a hard freshness bound, a learned GNN policy and real-data evaluation.
+\end{description}
+
+\subsection{References}\label{sec:refs}
+{\small
+\begin{enumerate}[label={[\arabic*]},leftmargin=1cm,itemsep=0.15em]
+  \item V.~Tripathi and E.~Modiano, ``Optimizing age of information with correlated sources,'' \emph{Proc.\ ACM MobiHoc}, 2022, pp.~41--50; extended in \emph{IEEE/ACM Trans.\ Netw.}, vol.~32, no.~6, pp.~4660--4675, 2024.
+  \item R.~V.~Ramakanth, V.~Tripathi, and E.~Modiano, ``Monitoring correlated sources: AoI-based scheduling is nearly optimal,'' \emph{Proc.\ IEEE INFOCOM}, 2024, pp.~641--650; extended in \emph{IEEE Trans.\ Mobile Comput.}, vol.~24, no.~2, pp.~1043--1054, 2025.
+  \item E.~Erbayat, A.~Maatouk, P.~Zou, and S.~Subramaniam, ``Age of information optimization and state error analysis for correlated multi-process multi-sensor systems,'' \emph{Proc.\ ACM MobiHoc}, 2024, pp.~331--340.
+  \item E.~Erbayat, A.~Maatouk, P.~Zou, and S.~Subramaniam, ``Age of information optimization with preemption strategies for correlated systems,'' \emph{Proc.\ IEEE ISIT}, 2025.
+  \item M.~Fidler, F.~Gallistl, J.~P.~Champati, and J.~Widmer, ``2D-AoI: Age-of-information of distributed sensors for spatio-temporal processes,'' \emph{IEEE Trans.\ Commun.}, vol.~74, pp.~645--661, 2026.
+  \item E.~T.~Ceran, D.~G\"und\"uz, and A.~Gy\"orgy, ``A reinforcement learning approach to age of information in multi-user networks with HARQ,'' \emph{IEEE J.\ Sel.\ Areas Commun.}, vol.~39, no.~5, pp.~1412--1426, 2021.
+  \item H.~Farag, M.~Gidlund, and \v{C}.~Stefanovi\'c, ``A deep reinforcement learning approach for improving age of information in mission-critical IoT,'' \emph{Proc.\ IEEE GCAIoT}, 2021, pp.~14--18.
+  \item J.~Chen, W.~Liu, D.~E.~Quevedo, Y.~Li, and B.~Vucetic, ``Structure-enhanced deep reinforcement learning for optimal transmission scheduling,'' \emph{Proc.\ IEEE ICC}, 2023, pp.~1212--1218.
+  \item B.~G.~Reyhan and S.~Coleri, ``Safe deep reinforcement learning for resource allocation with peak age of information violation guarantees,'' \emph{IEEE Trans.\ Commun.}, vol.~73, no.~12, pp.~14197--14211, 2025.
+  \item Y.~Shen, Y.~Shi, J.~Zhang, and K.~B.~Letaief, ``Graph neural networks for scalable radio resource management: Architecture design and theoretical analysis,'' \emph{IEEE J.\ Sel.\ Areas Commun.}, vol.~39, no.~1, pp.~101--115, 2021.
+  \item Z.~Zhao, G.~Verma, C.~Rao, A.~Swami, and S.~Segarra, ``Link scheduling using graph neural networks,'' \emph{IEEE Trans.\ Wireless Commun.}, vol.~22, no.~6, pp.~3997--4012, 2023.
+  \item L.~Wang, Q.~Wang, H.~Chen, and S.~Zhou, ``Age of information-oriented probabilistic link scheduling for device-to-device networks,'' \emph{Proc.\ IEEE/IFIP WiOpt}, 2024 (arXiv:2410.20196).
+  \item W.~Wang, Q.~Wu, P.~Fan, N.~Cheng, W.~Chen, J.~Wang, and K.~B.~Letaief, ``Optimizing age of information in vehicular edge computing with federated graph neural network multi-agent reinforcement learning,'' \emph{IEEE Trans.\ Wireless Commun.}, vol.~25, pp.~23017--23032, 2026.
+  \item R.~D.~Yates, Y.~Sun, D.~R.~Brown, S.~K.~Kaul, E.~Modiano, and S.~Ulukus, ``Age of information: An introduction and survey,'' \emph{IEEE J.\ Sel.\ Areas Commun.}, vol.~39, no.~5, pp.~1183--1210, 2021.
+  \item S.~Kaul, R.~Yates, and M.~Gruteser, ``Real-time status: How often should one update?'' \emph{Proc.\ IEEE INFOCOM}, 2012, pp.~2731--2735.
+  \item I.~Kadota, A.~Sinha, E.~Uysal-Biyikoglu, R.~Singh, and E.~Modiano, ``Scheduling policies for minimizing age of information in broadcast wireless networks,'' \emph{IEEE/ACM Trans.\ Netw.}, vol.~26, no.~6, pp.~2637--2650, 2018.
+  \item A.~Maatouk, S.~Kriouile, M.~Assaad, and A.~Ephremides, ``The age of incorrect information: A new performance metric for status updates,'' \emph{IEEE/ACM Trans.\ Netw.}, vol.~28, no.~5, pp.~2215--2228, 2020.
+  \item A.~S.~Leong, A.~Ramaswamy, D.~E.~Quevedo, H.~Karl, and L.~Shi, ``Deep reinforcement learning for wireless sensor scheduling in cyber--physical systems,'' \emph{Automatica}, vol.~113, art.~108759, 2020.
+  \item A.~Krause, A.~Singh, and C.~Guestrin, ``Near-optimal sensor placements in Gaussian processes: Theory, efficient algorithms and empirical studies,'' \emph{J.\ Mach.\ Learn.\ Res.}, vol.~9, pp.~235--284, 2008.
+  \item R.~E.~Kalman, ``A new approach to linear filtering and prediction problems,'' \emph{Trans.\ ASME J.\ Basic Eng.}, vol.~82, no.~1, pp.~35--45, 1960.
+  \item T.~N.~Kipf and M.~Welling, ``Semi-supervised classification with graph convolutional networks,'' \emph{Proc.\ ICLR}, 2017.
+  \item W.~Kool, H.~van Hoof, and M.~Welling, ``Attention, learn to solve routing problems!'' \emph{Proc.\ ICLR}, 2019.
+  \item J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov, ``Proximal policy optimization algorithms,'' arXiv:1707.06347, 2017.
+  \item Y.~Li, R.~Yu, C.~Shahabi, and Y.~Liu, ``Diffusion convolutional recurrent neural network: Data-driven traffic forecasting,'' \emph{Proc.\ ICLR}, 2018 (PEMS-BAY dataset).
+  \item P.~Bodik, W.~Hong, C.~Guestrin, S.~Madden, M.~Paskin, and R.~Thibaux, ``Intel Lab Data,'' 2004. Online: \url{http://db.csail.mit.edu/labdata/labdata.html}
+\end{enumerate}
+}

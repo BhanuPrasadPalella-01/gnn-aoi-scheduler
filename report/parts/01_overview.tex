@@ -1,0 +1,91 @@
+\section{Introduction}
+\subsection{How to read this guide}
+
+This guide explains the whole GNN-AoI project from zero. Read it in order the first time; afterwards use the
+contents page to jump to what you need.
+
+\begin{itemize}
+  \item \textbf{Section 2} is the glossary: every abbreviation and technical term used anywhere in the project.
+  \item \textbf{Section 3} teaches the background ideas (sensor networks, Age of Information, correlation, Kalman
+        filters, graph neural networks, reinforcement learning, PPO) from first principles.
+  \item \textbf{Section 4} shows how the problem statement came out of the gaps in published research, and lists the
+        objectives with how each one was achieved.
+  \item \textbf{Section 5} is the complete methodology, equation by equation.
+  \item \textbf{Section 6} is the implementation story, step by step, in the order we actually built it.
+  \item \textbf{Section 7} explains every design decision: why this dataset, tool or algorithm, and why not the
+        alternatives.
+  \item \textbf{Section 8} covers the expected output, the obtained output, and every graph and table, with a
+        ready-to-use explanation for your faculty.
+  \item \textbf{Section 9} gives the conclusion, limitations, future work, likely viva questions and references.
+\end{itemize}
+
+Throughout the guide, three kinds of boxes appear:
+
+\begin{whybox}[Why? boxes]
+explain the reason behind a choice.
+\end{whybox}
+\begin{saybox}[How to explain it to your faculty]
+give you sentences you can say almost word for word.
+\end{saybox}
+\begin{notebox}[Note boxes]
+point out a subtle detail or an honest limitation.
+\end{notebox}
+
+\subsection{The project in one page}
+
+\begin{keybox}[The problem in two sentences]
+A base station (the \emph{sink}) must keep track of the readings of many sensors, but the wireless channel lets
+only a few of them transmit in each time slot. Which sensors should transmit so that the sink knows the
+\emph{whole} field as accurately as possible, while no sensor is ignored for too long?
+\end{keybox}
+
+\textbf{The usual answer and why it is not enough.} The standard approach is to poll whichever sensor has gone
+longest without reporting. That keeps the \emph{Age of Information} (AoI) low, but it treats every sensor as
+independent. In real networks, neighbouring sensors measure almost the same thing (two thermometers in the same room,
+two traffic detectors on the same freeway). Polling both wastes a transmission: once one of them reports, the sink
+can already infer the other quite well.
+
+\textbf{Our answer.} GNN-AoI is a scheduler that:
+\begin{enumerate}
+  \item \textbf{learns from historical data} which sensors are correlated (a \emph{correlation graph});
+  \item keeps a \textbf{Kalman filter} at the sink, which turns every received reading into an updated estimate of
+        \emph{all} sensors, together with how uncertain it is about each one;
+  \item uses a \textbf{graph neural network} (GNN) that looks at the graph and the sink's uncertainty and chooses
+        which sensors transmit in each slot;
+  \item trains that GNN with \textbf{reinforcement learning} (the PPO algorithm), rewarding it for low estimation
+        error at the sink;
+  \item enforces a \textbf{hard freshness guarantee}: every sensor must report at least once every $F$ slots, no
+        matter what the scheduler would prefer.
+\end{enumerate}
+
+\textbf{Where we tested it.} On two real sensor datasets, using only time periods that were never used for
+training: 45 temperature sensors in the Intel Berkeley Research Lab (2004), and 325 freeway speed sensors in the
+San Francisco Bay Area (PEMS-BAY, 2017). We also tested on thousands of simulated sensor layouts.
+
+\textbf{Headline results.}
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+  \toprule
+  & \makecell{\textbf{Intel Lab}\\(45 sensors, $C=6$)} & \makecell{\textbf{PEMS-BAY}\\(325 sensors, $C=40$)} & \makecell{\textbf{Synthetic}\\($M=50$, $C=10$)} \\
+  \midrule
+  Max-AoI (classic) & 0.292\,$^\circ$C & 2.85 mph & 0.0399 (MSE) \\
+  Kalman-greedy & 0.277\,$^\circ$C & 2.95 mph & 0.0205 \\
+  \textbf{GNN-PPO (ours)} & \textbf{0.235\,$^\circ$C} & \textbf{2.78 mph} & \textbf{0.0200} \\
+  Change vs.\ Max-AoI & $-20\%$ & $-2.4\%$ & $-50\%$ \\
+  GNN beats Kalman-greedy in & 10/10 test windows & 15/15 test windows & 73\% of layouts \\
+  \bottomrule
+\end{tabular}
+\end{center}
+(Real-data numbers are the sink's root-mean-square error in physical units; lower is better.)
+
+\textbf{What we built.} A tested, open-source Python package (\texttt{gnn\_aoi}) with the simulator, real-data
+loaders, Kalman sink, five baseline schedulers, the GNN, the PPO trainer, all experiments and figures, and a live
+web demo that replays a real day and shows every transmission as it happens.
+
+\begin{saybox}
+``Classic schedulers only ask \emph{who has been silent the longest}. We ask \emph{who would teach the sink the most
+right now}, using correlations learned from real data, and we still guarantee that nobody stays silent too long.
+On the real Intel lab data this lowers the sink's temperature error by 20 percent with the same channel and the same
+freshness guarantee.''
+\end{saybox}

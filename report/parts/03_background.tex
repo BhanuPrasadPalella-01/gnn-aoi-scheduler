@@ -1,0 +1,104 @@
+\section{Background, from first principles}
+
+\subsection{Sensor networks and the scheduling problem}
+
+A wireless sensor network has many small, cheap sensors (temperature, humidity, traffic speed, air quality) and a
+\emph{sink} that collects their readings. The sensors share one radio channel. If too many transmit at once, their
+signals collide and are lost, so the sink coordinates who transmits when. Time is divided into \textbf{slots}; in
+each slot the channel can carry at most $C$ readings. With $M$ sensors and $C<M$, the sink must choose a subset of
+sensors in every slot. That choice is called \textbf{scheduling}, and the rule that makes it is the
+\textbf{scheduler} or \textbf{policy}.
+
+Example: the Intel lab has 45 sensors and we allow 6 transmissions per 5-minute slot. In any slot, 39 sensors stay
+silent, and the sink has to guess what they read.
+
+\subsection{Age of Information (AoI)}
+
+The \textbf{Age of Information} of sensor $i$ is how many slots ago the sink last heard from it \cite{15,14}:
+\[
+  a_i(t+1)=\begin{cases}1 & \text{if } i \text{ was polled in slot } t,\\ a_i(t)+1 & \text{otherwise.}\end{cases}
+\]
+A sensor polled just now has age 1; one silent for 10 slots has age 11. AoI measures \emph{freshness}: low AoI
+means recent data. The classic scheduler, \textbf{Max-AoI}, polls the $C$ sensors with the largest age. In steady
+state this becomes round robin: every sensor is polled once every $M/C$ slots. Kadota \emph{et al.}\ \cite{16}
+showed such age-based policies are near-optimal \emph{for AoI}.
+
+\begin{notebox}[The weakness of AoI]
+AoI looks only at \emph{when} data arrived, never at \emph{what} it says. If sensors 1 and 2 sit a metre apart in the
+same room and sensor 1 just reported 24.3\,$^\circ$C, the sink already knows sensor 2 reads about 24.3\,$^\circ$C. AoI still
+says sensor 2 is ``stale'' and polls it. That transmission is mostly wasted.
+\end{notebox}
+
+\subsection{Correlation}
+
+\textbf{Spatial correlation}: nearby sensors read similar values. \textbf{Temporal correlation}: a sensor's
+reading now is close to its reading 5 minutes ago. Both mean the sink can \emph{infer} silent sensors, but only if
+it knows the correlation structure. We learn that structure from historical data and store it as a
+\textbf{correlation graph}: nodes are sensors, and an edge joins two sensors whose unpredictable changes move
+together.
+
+\subsection{Estimating the field: the Kalman filter}
+
+The sink keeps an estimate $\hat x_t$ of every sensor's reading plus a covariance matrix $P_t$:
+\begin{itemize}
+  \item $P_{ii}$ = how uncertain the sink is about sensor $i$;
+  \item $P_{ij}$ = how much the uncertainties of $i$ and $j$ move together.
+\end{itemize}
+Each slot has two steps:
+\begin{enumerate}
+  \item \textbf{Predict}: move the estimate forward in time using the learned dynamics. Uncertainty grows, because
+        the world changed and nobody told the sink.
+  \item \textbf{Update}: when readings arrive from the polled sensors, correct the estimate. Uncertainty about
+        those sensors drops sharply, and, through $P_{ij}$, uncertainty about their \emph{correlated neighbours} drops
+        too.
+\end{enumerate}
+The \textbf{Kalman filter} \cite{20} is the mathematically optimal way to do this when the dynamics are linear and the
+noise is Gaussian. Its covariance $P_t$ is the natural, correlation-aware replacement for AoI: it tells us exactly
+how much the sink does \emph{not} know about each sensor, after taking neighbours into account.
+
+\begin{keybox}
+AoI says ``sensor 2 has not reported for 10 slots''. The Kalman covariance says ``but its neighbour reported 1 slot
+ago, so I am almost certain what sensor 2 reads''. Our scheduler reasons with the second statement.
+\end{keybox}
+
+\subsection{Greedy uncertainty reduction}
+
+If the sink can poll $C$ sensors, a natural rule is: pick the sensor whose reading would remove the most total
+uncertainty, update $P$ as if it had been polled, pick the next one, and so on. This is \textbf{greedy variance
+reduction}, the classic sensor-selection method \cite{19}, and in our project it is the \textbf{Kalman-greedy}
+baseline. Its weakness is that it is \textbf{myopic}: it only optimises the current slot. It does not plan ahead
+(for example, polling a sensor now because the freshness rule will otherwise force it at a worse moment later), and
+it trusts its model completely, even when the model is wrong on real data.
+
+\subsection{Graph neural networks (GNNs)}
+
+A GNN is a neural network for data shaped like a graph. Every node (here, every sensor) starts with a feature vector
+(its age, its uncertainty, and so on). In each \textbf{message-passing layer}, each node collects its neighbours'
+vectors, combines them with its own through a small neural network, and produces a new vector. After a few layers,
+each sensor's vector (its \textbf{embedding}) summarises its own state \emph{and} its neighbourhood \cite{21,10}.
+
+Why a GNN suits this problem:
+\begin{itemize}
+  \item The data is naturally a graph (sensors and their correlations).
+  \item The same weights work for any number of sensors, so one trained model runs on 45 or 325 sensors.
+  \item GNNs are \textbf{permutation-equivariant}: renumbering the sensors does not change the decision.
+\end{itemize}
+
+\subsection{Reinforcement learning and PPO}
+
+In \textbf{reinforcement learning} an \emph{agent} observes a \emph{state}, takes an \emph{action}, receives a
+\emph{reward}, and the world moves to a new state. The agent learns a \emph{policy} that maximises total future
+reward. Here: the state is what the sink knows, the action is which $C$ sensors to poll, and the reward is high when
+the sink's estimation error is low.
+
+There is no ``correct answer'' to copy for each slot (the best schedule depends on the future), so supervised
+learning does not fit. RL learns directly from the consequence that matters: the error.
+
+\textbf{PPO} (Proximal Policy Optimization) \cite{23} is an \textbf{actor--critic} RL algorithm:
+\begin{itemize}
+  \item the \textbf{actor} (our GNN) outputs a probability for each possible choice;
+  \item the \textbf{critic} predicts how good a state is, which tells us whether an action did better or worse than
+        expected (the \textbf{advantage});
+  \item PPO increases the probability of actions with positive advantage, but \textbf{clips} each update so the
+        policy never changes too much at once. This keeps training stable.
+\end{itemize}

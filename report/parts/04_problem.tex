@@ -1,0 +1,151 @@
+\section{From research gaps to the problem statement}
+
+\subsection{Where the project started}
+
+At mid-semester the project was a small prototype: 5 sensors, randomly generated data, a max-age baseline and a
+heuristic that discounted correlated sensors (we called it ``v4''). Our faculty asked for two things: \textbf{use many
+more sensors} and \textbf{use real data}, and show a live demonstration of how the scheduling happens. While
+rebuilding, we also found a bug in the prototype: the correlation graph was estimated on one random sensor layout
+(seed 42) but evaluated on a different one (seed 123), so the ``correlation-aware'' numbers were not meaningful. That
+pushed us to rebuild the project properly and to read the literature carefully to position it.
+
+\subsection{What the literature does (2021--2026)}
+
+We grouped recent work into three streams. Full references are in Section~\ref{sec:refs}.
+
+\textbf{Stream A: AoI with correlated sources (analytical).}
+\begin{itemize}
+  \item Tripathi \& Modiano \cite{1} (ACM MobiHoc 2022; IEEE/ACM ToN 2024): randomised and max-weight policies for
+        weighted AoI when an update from one source can refresh others. Within a factor 2 of optimal. Correlation is an
+        abstract probability, the objective is AoI, not estimation error.
+  \item Ramakanth, Tripathi \& Modiano \cite{2} (IEEE INFOCOM 2024; IEEE TMC 2025), \textbf{our base paper}: correlated
+        sources as a Wiener process, Kalman-filter estimation, one source observed per slot. Shows the error of any
+        policy is bounded by a weighted sum of AoI, so AoI-based scheduling that ignores correlation is within a
+        \emph{constant factor} of optimal.
+  \item Erbayat \emph{et al.}\ \cite{3,4} (ACM MobiHoc 2024, IEEE ISIT 2025): queueing analysis of AoI and state error
+        when one sensor's update covers several processes; preemption strategies.
+  \item Fidler \emph{et al.}\ \cite{5} (IEEE Trans.\ Commun.\ 2026): 2D-AoI, which converts spatial distance into an
+        equivalent age. A metric, not a scheduler.
+\end{itemize}
+
+\textbf{Stream B: learning-based AoI and estimation scheduling.}
+\begin{itemize}
+  \item Ceran, G\"und\"uz \& Gy\"orgy \cite{6} (IEEE JSAC 2021): RL for AoI with retransmissions (HARQ); sources
+        independent.
+  \item Farag \emph{et al.}\ \cite{7} (IEEE GCAIoT 2021): actor-critic DRL for average AoI plus the probability of
+        exceeding an AoI threshold (threshold met only in probability).
+  \item Chen \emph{et al.}\ \cite{8} (IEEE ICC 2023): structure-enhanced DRL for remote-estimation MSE; 10--25\% lower
+        MSE than standard DRL. Needs the optimal policy's structure derived by hand first.
+  \item Reyhan \& Coleri \cite{9} (IEEE Trans.\ Commun.\ 2025): safe DRL with peak-AoI \emph{violation probability}
+        constraints; optimises power.
+\end{itemize}
+
+\textbf{Stream C: graph neural networks for wireless scheduling.}
+\begin{itemize}
+  \item Shen \emph{et al.}\ \cite{10} (IEEE JSAC 2021): message-passing GNNs for radio resource management; generalise
+        to larger networks.
+  \item Zhao \emph{et al.}\ \cite{11} (IEEE TWC 2023): GCN-guided link scheduling (max-weight independent set).
+  \item Wang \emph{et al.}\ \cite{12} (IEEE/IFIP WiOpt 2024): MPNN that optimises an age-aware randomised policy.
+  \item Wang \emph{et al.}\ \cite{13} (IEEE TWC 2026): federated GNN + multi-agent RL for AoI-aware task offloading.
+\end{itemize}
+
+\subsection{The research gaps}
+
+Reading these side by side, five gaps stood out:
+
+\begin{description}[style=nextline,leftmargin=1.2cm]
+  \item[G1 -- Correlation is hand-modelled, not learned.] Stream A assumes a known correlation model (probabilities,
+        Wiener covariance, Gaussian kernels). Real deployments do not come with one.
+  \item[G2 -- The objective is freshness, not knowledge.] Most work minimises AoI. AoI is a proxy; what the sink
+        actually needs is a low estimation error for \emph{all} sensors.
+  \item[G3 -- Learned schedulers use the wrong graph.] GNN schedulers (Stream C) build graphs from interference or
+        road topology, i.e.\ who \emph{conflicts} with whom, not whose \emph{data is redundant}.
+  \item[G4 -- Freshness is soft.] Learned methods treat AoI limits as penalties or probabilistic constraints
+        \cite{7,9}; a sensor can still be neglected.
+  \item[G5 -- Little evidence on real multi-sensor data.] Almost all results are on simulations; few use real
+        recordings with a strict separation between training and test periods. The base paper also polls only
+        one source per slot and leaves a constant-factor gap open.
+\end{description}
+
+\subsection{How the gaps became our problem statement}
+
+Each gap fixed one part of the problem statement:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Gap} & \textbf{What it added to our problem statement} \\
+\midrule
+G1 & The correlation structure must be \emph{learned from historical data}. \\
+G2 & The objective is the sink's \emph{estimation error} over all sensors, not AoI. \\
+G3 & The scheduler should be a GNN over a \emph{data-correlation} graph (and the sink's live uncertainty). \\
+G4 & Every sensor's AoI must stay below $F$ \emph{by construction}, for every policy. \\
+G5 & Evaluate on \emph{real} datasets with a chronological train/test split, with $C>1$ polls per slot. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{keybox}[Final problem statement]
+Given $M$ sensors whose readings are correlated in space and time, and a channel that carries at most $C$
+transmissions per slot, design a scheduler that chooses which sensors transmit in each slot so as to
+\textbf{minimise the sink's estimation error over all sensors}, using a correlation structure \textbf{learned from
+data}, while \textbf{guaranteeing that no sensor goes more than $F$ slots without reporting}, and validate it on
+\textbf{real sensor recordings} that were not used for training.
+\end{keybox}
+
+\subsection{The base paper and how we extend it}
+
+\textbf{Base paper:} R.~V.~Ramakanth, V.~Tripathi, E.~Modiano, ``Monitoring Correlated Sources: AoI-based Scheduling
+is Nearly Optimal,'' IEEE INFOCOM 2024 \cite{2}.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+& \textbf{Base paper} & \textbf{Our project} \\
+\midrule
+Source model & Discrete-time Wiener process, known covariance & Stationary AR(1), covariance \emph{fitted from data} \\
+Estimator & Kalman filter & Kalman filter (same idea) \\
+Polls per slot & 1 & $C\ge1$ (6 and 40 on real data) \\
+Policy & AoI-based, correlation ignored & Learned GNN, correlation-aware \\
+Freshness & Not a constraint & Hard bound $F$ \\
+Evaluation & Theory + simulation & Simulation + two real datasets, statistical tests \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The base paper's AoI-based policy is exactly our \textbf{Max-AoI (B1)} baseline (in its unweighted form). The paper
+proves it is within a constant factor of optimal; our results show that in practice the gap is real: our learned
+scheduler lowers error by 20\% on Intel Lab against it.
+
+\begin{saybox}
+``Our base paper proves that simple AoI scheduling is within a constant factor of optimal when you monitor
+correlated sources with a Kalman filter. That constant factor can still be large. We keep the same Kalman framework,
+but learn the correlations from real data, poll several sensors per slot, guarantee freshness, and train a GNN to
+close that gap. On the Intel lab data we close it by 20 percent.''
+\end{saybox}
+
+\subsection{Objectives and how each was achieved}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}p{0.6cm}p{5.2cm}X@{}}
+\toprule
+\textbf{\#} & \textbf{Objective} & \textbf{How we achieved it} \\
+\midrule
+O1 & Model the sink's knowledge with a Kalman filter on a correlation graph learned from data
+   & \texttt{fit\_model} fits each sensor's dynamics and the innovation covariance on the training period;
+     the graph keeps innovation correlations $\ge 0.3$; \texttt{KalmanSink} tracks estimate and covariance. (5.2--5.5) \\
+O2 & Design a GNN scheduler trained end-to-end with PPO on estimation error
+   & Three-layer GNN over two graphs + residual pointer decoder, initialised as Kalman-greedy, trained with PPO
+     on $-\log$(error). (5.8--5.9) \\
+O3 & Guarantee freshness by construction
+   & Freshness guard forces overdue sensors before any policy acts; the environment asserts it every slot;
+     unit tests check every baseline. (5.6) \\
+O4 & Validate on real data with no leakage
+   & Intel Lab (45 sensors) and PEMS-BAY (325); chronological split; daily profile and model fitted on training
+     data only; a test checks no test data leaks. (6.5) \\
+O5 & Compare fairly with significance tests and an ablation
+   & Five baselines + oracle + ablation, identical readings for all, 95\% CIs, win rates, Wilcoxon tests. (5.10, 8) \\
+O6 & Demonstrate live
+   & Web demo replaying a real test day slot by slot with three schedulers side by side. (6.8) \\
+\bottomrule
+\end{tabularx}
+\end{center}

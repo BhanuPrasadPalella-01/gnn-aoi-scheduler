@@ -1,0 +1,136 @@
+\section{Design decisions: why this, and why not that}
+
+\subsection{Datasets}
+
+\begin{whybox}[Why the Intel Berkeley Research Lab dataset?]
+\begin{itemize}
+  \item It is a \textbf{real wireless sensor network}: battery motes on one floor reporting to a base station, the
+        exact setting of our problem.
+  \item The motes' \textbf{positions are published}, so we can draw the network and check that learned correlations
+        make physical sense.
+  \item Indoor temperature is \textbf{strongly spatially correlated} (rooms, corridors, sun-facing walls): the
+        case where correlation-aware scheduling should help most.
+  \item It is public, widely used in sensor-network research, and small enough to run on a laptop.
+\end{itemize}
+\end{whybox}
+
+\begin{whybox}[Why PEMS-BAY as the second dataset?]
+\begin{itemize}
+  \item \textbf{Scale}: 325 sensors, seven times more than Intel. It tests whether the method scales.
+  \item \textbf{Different physics}: traffic speed changes suddenly (incidents, congestion waves) and correlation
+        follows the road network, not straight-line distance. A good test of robustness.
+  \item \textbf{Clean and long}: six months of 5-minute data with few gaps, so we can train on four months and test
+        on two.
+  \item It is a \textbf{standard benchmark} in spatio-temporal graph learning (introduced with DCRNN \cite{24}).
+\end{itemize}
+\end{whybox}
+
+\textbf{Why not the alternatives?}
+\begin{itemize}
+  \item \textbf{Random / synthetic data only}: exactly what the faculty asked us to move away from. We keep the
+        simulator for controlled studies, but the headline results are on real data.
+  \item \textbf{METR-LA} (207 Los Angeles traffic sensors): same type of data as PEMS-BAY but with many more missing
+        readings; PEMS-BAY is cleaner and larger.
+  \item \textbf{Single-station datasets} (e.g.\ one air-quality or weather station): no spatial network, so there is
+        no correlation between sensors to exploit.
+  \item \textbf{Sparse weather or pollution networks}: stations kilometres apart, hourly data and many gaps; weak
+        correlation and too few slots.
+  \item \textbf{Private or paid datasets}: not reproducible.
+\end{itemize}
+Using one indoor dataset with strong correlation and one large outdoor dataset with weaker, more irregular
+correlation shows both where the method helps a lot and where it helps a little.
+
+\subsection{Problem settings}
+
+\begin{whybox}[Why 5-minute slots?]
+It is PEMS-BAY's native resolution, and Intel's 31-second readings average cleanly into it. It also matches how often
+a battery sensor would realistically report.
+\end{whybox}
+\begin{whybox}[Why $C\approx M/8$ (6 of 45, 40 of 325)?]
+Capacity must be scarce for scheduling to matter; with $C$ close to $M$ every scheduler polls almost everyone. About one
+in eight is a realistic shared-channel budget, and the capacity sweeps show results for $C$ from 3 to 15 (Intel) and
+10 to 80 (PEMS-BAY).
+\end{whybox}
+\begin{whybox}[Why a correlation threshold of 0.3?]
+Below about 0.3, sample correlations are dominated by estimation noise and would add many meaningless edges; much higher
+thresholds would drop real relationships. The Kalman filter still uses the full covariance; the threshold only shapes
+the graph the GNN passes messages on.
+\end{whybox}
+
+\subsection{Algorithms}
+
+\textbf{Estimator: Kalman filter.} Alternatives: particle filters (needed only for non-Gaussian models, much slower),
+Gaussian-process regression (no time dynamics, cubic cost per slot), deep forecasters such as graph-recurrent networks
+(need training, no calibrated uncertainty). The Kalman filter is optimal for our model, fast, and its covariance is
+exactly the uncertainty signal the scheduler needs.
+
+\textbf{Learning paradigm: reinforcement learning.} Supervised learning needs the ``right'' poll set for every slot,
+which nobody knows: a choice now affects errors and forced polls many slots later. RL learns from the outcome itself.
+
+\textbf{RL algorithm: PPO.}
+\begin{itemize}
+  \item \textbf{DQN} needs a value for every possible action. Choosing 6 of 45 sensors has over 8 million combinations
+        (40 of 325 is astronomically more); a Q-network cannot enumerate them. Our pointer decoder builds the set one
+        sensor at a time with exact probabilities, which suits policy-gradient methods.
+  \item \textbf{REINFORCE / A2C}: simpler policy gradients, but with high variance and unstable large updates; PPO's
+        clipping makes training stable.
+  \item \textbf{SAC / DDPG}: designed for continuous actions; ours are discrete selections.
+  \item PPO is the most widely used, robust on-policy algorithm and easy to tune.
+\end{itemize}
+
+\textbf{Model: graph neural network.}
+\begin{itemize}
+  \item \textbf{MLP}: fixed input size, so a model for 45 sensors cannot run on 325, and it would have to learn that
+        sensor order does not matter.
+  \item \textbf{CNN}: needs a regular grid; sensors are irregularly placed and traffic follows roads.
+  \item \textbf{Transformer}: also permutation-equivariant, but attends from every sensor to every other ($M^2$
+        attention) and ignores the known correlation structure. A GNN uses the graph we already learned. (Our decoder
+        does use a light query--key interaction term.)
+\end{itemize}
+
+\textbf{Decoder: residual pointer network.} Scoring all sensors once and taking the top $C$ ignores that the second pick
+should depend on the first (two neighbours are redundant). The autoregressive pointer decoder \cite{22} re-scores after
+each pick and re-runs the Kalman update, so redundancy is handled exactly. Starting from Kalman-greedy (instead of a
+random initialisation or behaviour cloning) gives a strong policy from iteration 0.
+
+\textbf{Freshness: hard guard, not a penalty or probabilistic constraint.} Explained in Section 5.6: unconditional,
+identical for all policies, and the only way to guarantee no starvation.
+
+\textbf{Statistics: Wilcoxon signed-rank test.} The same windows are used for every scheduler, so the results are
+paired. A paired t-test assumes normally distributed differences; with 10--30 samples and skewed errors, Wilcoxon (which
+uses ranks) is the safer choice.
+
+\subsection{Tools}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.3cm}p{3.3cm}X@{}}
+\toprule
+\textbf{Chosen} & \textbf{Instead of} & \textbf{Reason} \\
+\midrule
+Python & MATLAB, Java & Standard language for ML; free; all libraries available. \\
+NumPy & Pandas for core maths & Fast vectorised linear algebra for the Kalman filter; Pandas used only to parse raw files. \\
+PyTorch & TensorFlow, JAX & Dynamic graphs make the step-by-step decoder easy; dominant in research; good CPU performance. \\
+Dense matrices for message passing & PyTorch Geometric, DGL & With $M\le325$, one batched matrix multiply is faster and simpler than sparse scatter operations, and avoids a heavy, version-sensitive dependency. \\
+CPU training & GPU & The model is small (137k parameters); the Kalman steps are sequential; 35 minutes on a laptop CPU is enough, and anyone can reproduce it. \\
+Matplotlib & Plotly, Seaborn & Publication-quality static figures and the GIF, no extra dependencies. \\
+Python standard-library HTTP server & Flask, FastAPI, Django & Five small JSON endpoints; zero extra dependencies; runs anywhere Python runs. \\
+Plain JavaScript + Canvas & React, D3 & No build step; Canvas draws hundreds of animated sensors smoothly. \\
+pytest + GitHub Actions & Manual testing & Every push re-checks guarantees such as freshness and no data leakage. \\
+LaTeX Beamer & PowerPoint & Required by the review; equations and references typeset properly. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Hyper-parameters}
+\begin{itemize}
+  \item \textbf{Embedding 64, 3 layers}: information reaches three-hop neighbourhoods while the model stays small
+        (137k parameters) and fast on a CPU.
+  \item \textbf{$\gamma=0.95$}: about a 20-slot horizon, similar to the freshness bound, so the policy can plan around
+        forced polls.
+  \item \textbf{Clip 0.15, lr $10^{-4}$}: small steps, because the policy starts already strong (Kalman-greedy) and
+        large updates would destroy that.
+  \item \textbf{Entropy 0.002}: a little exploration without making the policy noisy.
+  \item \textbf{35\% real-data iterations}: enough to learn real-world mismatch while synthetic variety teaches
+        generalisation.
+\end{itemize}

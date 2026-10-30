@@ -1,0 +1,179 @@
+\section{Abbreviations and important terms}
+
+\subsection{Abbreviations}
+
+{\small
+\begin{longtable}{@{}p{2.6cm}p{5.2cm}p{7.6cm}@{}}
+\toprule
+\textbf{Short form} & \textbf{Full form} & \textbf{Meaning in this project} \\
+\midrule
+\endhead
+AoI & Age of Information & Time (in slots) since the sink last received a reading from a sensor. \\
+AoCI & Age of Correlated Information & A sensor is only as stale as its freshest correlated neighbour; an early, graph-based version of our idea (kept as a metric). \\
+AoII & Age of Incorrect Information & Variant of AoI that only counts time during which the sink's knowledge is wrong \cite{17}. \\
+PAoI & Peak Age of Information & The largest age reached before an update arrives. \\
+WSN & Wireless Sensor Network & Many small sensors reporting over radio to a base station. \\
+IoT & Internet of Things & Networked everyday devices and sensors. \\
+CPS & Cyber-Physical System & A system where computation monitors or controls a physical process. \\
+GNN & Graph Neural Network & A neural network that works on graphs by passing messages between connected nodes. \\
+GCN & Graph Convolutional Network & A common GNN type \cite{21}. \\
+MPNN & Message-Passing Neural Network & General GNN framework; ours is one. \\
+MLP & Multi-Layer Perceptron & A plain feed-forward neural network. \\
+GELU & Gaussian Error Linear Unit & The activation function used in our MLPs. \\
+LN & Layer Normalisation & Rescales each node's embedding to stabilise training. \\
+RL & Reinforcement Learning & Learning a policy by trial and reward. \\
+DRL & Deep Reinforcement Learning & RL where the policy is a neural network. \\
+MDP & Markov Decision Process & The formal model of a sequential decision problem (state, action, reward, transition). \\
+PPO & Proximal Policy Optimization & The RL algorithm we train with \cite{23}. \\
+GAE & Generalized Advantage Estimation & How PPO estimates how much better an action was than expected. \\
+KL & Kullback--Leibler divergence & Distance between two probability distributions; used to monitor PPO updates. \\
+DQN & Deep Q-Network & A value-based RL algorithm (not used; see Section 7). \\
+A2C & Advantage Actor-Critic & A simpler actor-critic RL algorithm (not used). \\
+SAC & Soft Actor-Critic & An RL algorithm for continuous actions (not used). \\
+BC & Behaviour Cloning & Training a network to imitate a teacher; tried and replaced. \\
+KF & Kalman Filter & Optimal estimator for linear-Gaussian systems; our sink. \\
+AR(1) & Autoregressive process of order 1 & Each reading depends on the previous one plus noise. \\
+RBF & Radial Basis Function & The kernel that makes correlation fall off with distance in the simulator. \\
+MSE & Mean Squared Error & Average squared estimation error over sensors and slots. \\
+RMSE & Root Mean Squared Error & Square root of MSE, in physical units ($^\circ$C or mph). \\
+CI & Confidence Interval & Range likely to contain the true mean (we use 95\%). \\
+LS & Least Squares & Fitting method used for each sensor's $\rho$. \\
+B1 & Baseline 1 & Our name for the Max-AoI scheduler. \\
+v4 & Version 4 & The correlation-diverse heuristic from our mid-semester work. \\
+KG & Kalman-greedy & Baseline that greedily reduces the sink's uncertainty. \\
+PEMS & Performance Measurement System & Caltrans traffic data system; PEMS-BAY is its Bay-Area subset. \\
+MAC & Medium Access Control & The network layer that decides who transmits when; scheduling lives here. \\
+HARQ & Hybrid Automatic Repeat reQuest & Retransmission scheme on lossy links (future work). \\
+D2D & Device-to-Device & Direct links between devices (mentioned in literature). \\
+MWIS & Maximum Weighted Independent Set & NP-hard problem behind link scheduling (literature). \\
+CPU / GPU & Central / Graphics Processing Unit & We train and run everything on a laptop CPU. \\
+API & Application Programming Interface & The JSON endpoints the demo website calls. \\
+HTTP & HyperText Transfer Protocol & How the browser talks to our local server. \\
+JSON & JavaScript Object Notation & Text format for results and API messages. \\
+CI (software) & Continuous Integration & GitHub Actions runs our tests on every push. \\
+NPZ & NumPy zipped archive & File format of our processed datasets and fitted models. \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Symbols}
+
+{\small
+\begin{longtable}{@{}p{2.6cm}p{12.8cm}@{}}
+\toprule
+\textbf{Symbol} & \textbf{Meaning} \\
+\midrule
+\endhead
+$M$ & Number of sensors (45 for Intel Lab, 325 for PEMS-BAY, 50 in the main synthetic test). \\
+$C$ & Channel capacity: the maximum number of sensors that may transmit in one slot. \\
+$F$ & Freshness bound: no sensor's AoI may exceed $F$ slots. We use $F=\lfloor 3M/C\rfloor$. \\
+$t$ & Time slot index (one slot = 5 minutes on real data). \\
+$x_t$ & True readings of all $M$ sensors at slot $t$ (a vector). \\
+$\hat x_t$ (or $m_t$) & The sink's estimate of $x_t$. \\
+$y_t$ & The readings actually received in slot $t$ (only from polled sensors). \\
+$S_t$ & The set of sensors polled in slot $t$. \\
+$\mathcal F_t$ & Forced set: sensors that must be polled now to respect the freshness bound. \\
+$a_i(t)$ & Age of Information of sensor $i$. \\
+$\rho_i$ & Temporal correlation of sensor $i$: how much of its value carries over to the next slot. \\
+$Q$ & Covariance matrix of the innovations (the new, unpredictable part of each step). \\
+$P_t$ & The sink's posterior covariance: $P_{ii}$ is its uncertainty about sensor $i$, $P_{ij}$ the shared uncertainty. \\
+$P_0$ & Stationary covariance: the sink's uncertainty when it knows nothing. \\
+$r$ & Measurement noise variance ($10^{-3}$). \\
+$g_i$ & Variance gain: how much total uncertainty disappears if sensor $i$ is polled next. \\
+$\hat r_{ij}$ & Estimated correlation between the innovations of sensors $i$ and $j$. \\
+$\Acorr$ & Correlation graph (edge weight $|\hat r_{ij}|$ where $|\hat r_{ij}|\ge 0.3$). \\
+$\Apost$ & Posterior-correlation graph built from $P_t$ each slot. \\
+$h_i$ & The GNN's embedding (64 numbers) for sensor $i$. \\
+$d$ & Embedding size (64). \\
+$f_\theta$ & The learned per-sensor correction in the decoder. \\
+$G_{ij}$ & The learned pairwise interaction term in the decoder. \\
+$\alpha$ & Weight on the Kalman gain term in the decoder (learnable, starts at 4). \\
+$\pi_\theta$ & The policy (the actor network) with parameters $\theta$. \\
+$V_\phi$ & The critic (value network) with parameters $\phi$. \\
+$\gamma$ & Discount factor (0.95): how much future rewards count. \\
+$\lambda$ & GAE parameter (0.9). \\
+$\epsilon$ & PPO clip range (0.15). \\
+$\hat A_t$ & Advantage estimate. \\
+$\ell$ & Correlation length scale in the simulator. \\
+\bottomrule
+\end{longtable}
+}
+
+\subsection{Important and new terms}
+
+{\small
+\begin{longtable}{@{}p{3.6cm}p{11.8cm}@{}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+\endhead
+Sink / base station & The central node that receives sensor readings and estimates the field. \\
+Field & The physical quantity spread over space and time (temperature over a floor, speed over a road network). \\
+Slot & One scheduling decision period. Real data: 5 minutes. \\
+Polling & The sink asking a sensor to transmit in this slot. \\
+Scheduler / policy & The rule that decides which sensors to poll. \\
+Channel capacity & How many transmissions fit in one slot ($C$). \\
+Interference / conflict & Two sensors too close to transmit in the same slot (only in synthetic tests). \\
+Freshness guarantee & Hard rule: every sensor is polled at least every $F$ slots. \\
+Freshness guard & The component that enforces it by forcing overdue sensors before the scheduler chooses. \\
+Forced poll & A poll made because a sensor reached age $F$. \\
+Starvation & A sensor that is never polled. Happens to greedy schedulers without the guard. \\
+Spatial correlation & Nearby sensors read similar values. \\
+Temporal correlation & A sensor's reading now is similar to its reading a slot ago. \\
+Innovation & The part of a reading that the previous reading could not predict (the ``surprise''). \\
+Correlation graph & Graph whose nodes are sensors and whose edges join sensors whose innovations move together. \\
+Redundancy & Information the sink already has (or can infer) from other sensors. \\
+Estimation error & Difference between the true reading and the sink's estimate. \\
+Posterior & What the sink believes after using all received data. \\
+Prior & What the sink believes before new data arrives. \\
+Predict step & Kalman step that moves the estimate forward one slot and increases uncertainty. \\
+Update step & Kalman step that uses received readings to correct the estimate and reduce uncertainty. \\
+Kalman gain & How strongly a new reading changes each sensor's estimate. \\
+Variance gain $g_i$ & Total uncertainty removed by polling sensor $i$. \\
+Greedy & Choosing the best option for the current step only, without looking ahead. \\
+Myopic & Same as greedy: optimising only the present slot. \\
+Submodular & ``Diminishing returns'' property; makes greedy sensor selection near-optimal within one slot. \\
+Oracle & A baseline that is told the true covariance; not deployable, used as a reference. \\
+Ablation & Removing one component to measure what it contributes (here: message passing). \\
+Embedding & A vector of numbers the network uses to describe one sensor. \\
+Message passing & Each node updates its embedding using its neighbours' embeddings. \\
+Permutation equivariance & Renumbering the sensors renumbers the output the same way; a GNN property. \\
+Pointer decoder & A decoder that ``points at'' one input (sensor) at a time to build an ordered selection \cite{22}. \\
+Autoregressive & Each pick depends on the picks already made. \\
+Plackett--Luce & Probability model for an ordered list built by repeated softmax picks; gives exact log-probabilities. \\
+Residual design & The network learns a correction on top of a known good rule (Kalman-greedy) instead of from scratch. \\
+Softmax & Turns scores into probabilities that sum to 1. \\
+Masking & Setting a score to $-\infty$ so an item cannot be picked. \\
+Actor & The policy network (chooses actions). \\
+Critic & The value network (predicts future reward; helps train the actor). \\
+Reward & The number the agent tries to maximise: here, low estimation error. \\
+Return & Discounted sum of future rewards. \\
+Advantage & How much better an action did than the critic expected. \\
+Rollout & A batch of experience collected with the current policy. \\
+Entropy bonus & Small reward for keeping the policy random enough to explore. \\
+Clipping & PPO's limit on how much one update can change the policy. \\
+Warm start & Starting training from an earlier checkpoint. \\
+Checkpoint & Saved network weights. \\
+Validation set & Data used to choose the best checkpoint, never used for the final results. \\
+Test set & Held-out data used only for final results. \\
+Held-out / chronological split & Training uses earlier dates, testing uses later dates. \\
+Data leakage & Accidentally letting test data influence training; prevented and tested. \\
+Daily profile & The typical reading for each time of day, learned from training data. \\
+Standardisation & Expressing values as deviations in units of standard deviation. \\
+Recording gap / outage & A period where the dataset has no readings. \\
+Burn-in & First slots of an episode that are not scored, so the sink can settle. \\
+Episode & One run of a scheduler over a window of slots. \\
+Test window & One disjoint stretch of the test period used as an episode. \\
+Layout & One random placement of sensors (synthetic). \\
+Uniform / clustered layout & Sensors spread evenly / grouped in clumps. \\
+Length scale & How far correlation reaches in the simulator. \\
+Pilot phase & Initial period where the sink hears everything, used to learn correlations (synthetic). \\
+Win rate & Share of test windows or layouts where the GNN had lower error. \\
+Wilcoxon signed-rank test & Paired statistical test of whether one method is consistently better. \\
+p-value & Probability of seeing a difference this large by chance if the methods were equal. \\
+Zero-shot & Tested on a setting never seen in training (e.g.\ 150 or 200 sensors). \\
+Generalisation & Working well on unseen data or sizes. \\
+Live demo & Our website that replays a real day and shows each scheduler's transmissions. \\
+\bottomrule
+\end{longtable}
+}
