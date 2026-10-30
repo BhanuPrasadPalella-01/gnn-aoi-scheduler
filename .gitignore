@@ -8,3 +8,4 @@ results/data/train_stdout.log
 results/data/*stdout.log
 .claude/
 data/raw/
+presentation/*.zip
