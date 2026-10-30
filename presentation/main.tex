@@ -1,14 +1,10 @@
-% GNN-AoI: Final Project Presentation (LaTeX Beamer)
-% Compile:  tectonic main.tex      (or on Overleaf: XeLaTeX or pdfLaTeX)
+% GNN-AoI: Final Project Presentation (LaTeX Beamer, Madrid theme)
+% Compile:  tectonic main.tex      (or on Overleaf: pdfLaTeX or XeLaTeX)
 \documentclass[aspectratio=169,10pt]{beamer}
+\usepackage[utf8]{inputenc}
 
-% ---------------------------------------------------------------- edit me
-\newcommand{\studentname}{Bhanu Prasad Palella}
-\newcommand{\rollno}{Roll No.: [your roll number]}
-\newcommand{\guidename}{Guide: [guide's name and designation]}
-\newcommand{\dept}{Amrita School of Artificial Intelligence}
-\newcommand{\talkdate}{[presentation date]}
-% ------------------------------------------------------------------------
+\usetheme{Madrid}
+\usecolortheme{default}
 
 \usepackage{amsmath,amssymb,bm}
 \usepackage{booktabs,tabularx,array,multirow,makecell}
@@ -20,58 +16,19 @@
 \usepackage{xcolor}
 \usepackage{fontawesome5}
 
-% ---------------------------------------------------------------- theme
+% colours used in figures, diagrams and highlights
 \definecolor{ink}{HTML}{0F172A}
 \definecolor{inksoft}{HTML}{334155}
 \definecolor{muted}{HTML}{64748B}
 \definecolor{accent}{HTML}{2563EB}
 \definecolor{accentlight}{HTML}{DBEAFE}
 \definecolor{good}{HTML}{059669}
-\definecolor{warn}{HTML}{D97706}
 \definecolor{bad}{HTML}{DC2626}
 \definecolor{orangeb}{HTML}{EA580C}
 \definecolor{paper}{HTML}{F8FAFC}
 \definecolor{rule}{HTML}{E2E8F0}
 
-\usefonttheme{professionalfonts}
 \setbeamertemplate{navigation symbols}{}
-\setbeamercolor{background canvas}{bg=white}
-\setbeamercolor{normal text}{fg=ink}
-\setbeamercolor{structure}{fg=accent}
-\setbeamercolor{alerted text}{fg=accent}
-\setbeamercolor{block title}{bg=accent,fg=white}
-\setbeamercolor{block body}{bg=accentlight!45,fg=ink}
-\setbeamertemplate{blocks}[rounded][shadow=false]
-\setbeamertemplate{itemize item}{\color{accent}\raisebox{0.15ex}{\scriptsize$\blacktriangleright$}}
-\setbeamertemplate{itemize subitem}{\color{muted}\raisebox{0.2ex}{\tiny$\bullet$}}
-\setbeamerfont{itemize/enumerate subbody}{size=\small}
-\setbeamertemplate{enumerate item}{\color{accent}\bfseries\insertenumlabel.}
-
-\setbeamertemplate{frametitle}{%
-  \nointerlineskip\vspace{0.7em}%
-  \begin{minipage}{\textwidth}\raggedright
-    \usebeamerfont{frametitle}\color{ink}\bfseries\insertframetitle\par\nointerlineskip
-    \vspace{0.35em}{\color{accent}\rule{2.2em}{2.2pt}}%
-  \end{minipage}\par\vspace{0.3em}%
-}
-\setbeamerfont{frametitle}{size=\Large}
-\setbeamercolor{frametitle}{bg=white}
-
-\makeatletter
-\setbeamertemplate{footline}{%
-  \leavevmode\hbox to\paperwidth{%
-    \hspace{1.1em}{\color{muted}\tiny\studentname\ \ $\cdot$\ \ GNN-AoI: correlation-aware sensor scheduling}%
-    \hfill
-    {\color{muted}\tiny\insertframenumber\,/\,\inserttotalframenumber}\hspace{1.1em}}%
-  \vspace{0.25em}%
-  % progress bar
-  \hbox to\paperwidth{{\color{rule}\rule{\paperwidth}{1.6pt}}}%
-  \vspace{-1.6pt}%
-  \pgfmathsetlengthmacro{\progw}{\paperwidth*min(1,\insertframenumber/max(1,\inserttotalframenumber))}%
-  \hbox{{\color{accent}\rule{\progw}{1.6pt}}}%
-}
-\makeatother
-
 \newcommand{\hl}[1]{{\color{accent}\textbf{#1}}}
 \newcommand{\good}[1]{{\color{good}\textbf{#1}}}
 \newcommand{\bad}[1]{{\color{bad}\textbf{#1}}}
@@ -79,13 +36,6 @@
 \newcommand{\sect}[1]{\par{\color{muted}\scriptsize\MakeUppercase{#1}}\par\vspace{0.2em}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \renewcommand{\arraystretch}{1.15}
-
-% card used in a few slides
-\newcommand{\card}[3]{%
-  \begin{tikzpicture}
-    \node[draw=rule,fill=paper,rounded corners=4pt,inner sep=7pt,text width=#1,align=left] {%
-      {\color{accent}\bfseries #2}\\[0.25em]\small #3};
-  \end{tikzpicture}}
 
 \tikzset{
   box/.style={draw=#1,fill=#1!8,rounded corners=4pt,align=center,inner sep=5pt,font=\small},
@@ -95,36 +45,45 @@
   st/.style={box=#1,minimum height=1.25cm,text width=2.25cm,font=\scriptsize},
 }
 
-\title{GNN-AoI: Correlation-Aware Scheduling of Real Sensor Networks}
-\subtitle{A graph neural network, trained with reinforcement learning, that decides which sensors\\ may transmit, under a hard Age-of-Information guarantee}
+%------------------------------------------------------------
+%This block of code defines the information to appear in the
+%Title page
+\title[GNN-AoI] %optional
+{GNN-AoI: Correlation-Aware Scheduling of Real Sensor Networks}
+
+\subtitle{A graph neural network, trained with reinforcement learning, that decides which sensors may transmit under a hard Age-of-Information guarantee}
+
+\author[Palella, Gullanki, Preethikha, Madhumitha] % (optional)
+{Bhanu Prasad Palella \and Gullanki Bhagya Lakshmi \and Pavna Preethikha \and Madhumitha S}
+
+\institute[ASAI] % (optional)
+{
+  Amrita School of Artificial Intelligence\\[0.3em]
+  Guide: [guide's name and designation]
+}
+
+\date[Final Review] % (optional)
+{Final Project Presentation, [presentation date]}
+
+%\logo{\includegraphics[height=1cm]{logo}}   % add a college logo file here if needed
+
+%End of title page configuration block
+%------------------------------------------------------------
 
 \begin{document}
 
-% =================================================================== 1 TITLE
-{
-\setbeamertemplate{footline}{}
-\setbeamercolor{background canvas}{bg=ink}
-\begin{frame}[plain]
-  \begin{tikzpicture}[remember picture,overlay]
-    \node[anchor=south east,opacity=0.85] at ([xshift=-0.5cm,yshift=0.6cm]current page.south east)
-      {\includegraphics[width=0.40\paperwidth]{figures/hero.png}};
-  \end{tikzpicture}
-  \vspace{0.6cm}
-  \begin{minipage}{0.53\textwidth}\raggedright
-    {\color{accentlight}\scriptsize\bfseries FINAL PROJECT PRESENTATION}\\[0.5em]
-    {\color{white}\Large\bfseries GNN-AoI: Correlation-Aware Scheduling of Real Sensor Networks\par}
-    \vspace{0.6em}
-    {\color{white!75}\small A graph neural network trained with reinforcement learning decides which sensors may
-    transmit, while every sensor stays fresh by construction.\par}
-    \vspace{1.4em}
-    {\color{white}\bfseries \studentname}\\[0.15em]
-    {\color{white!75}\small \rollno}\\
-    {\color{white!75}\small \guidename}\\
-    {\color{white!75}\small \dept}\\
-    {\color{white!60}\scriptsize \talkdate}
-  \end{minipage}
+%The next statement creates the title page.
+\frame{\titlepage}
+
+%---------------------------------------------------------
+%Table of contents after the title page
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
 \end{frame}
-}
+%---------------------------------------------------------
+
+\section{Introduction}
 
 % =================================================================== 2 PROBLEM
 \begin{frame}{Problem Statement}
@@ -186,10 +145,12 @@
   \end{enumerate}
 \end{frame}
 
+\section{Literature Review}
+
 % =================================================================== 4-6 LITERATURE
-\begin{frame}{Literature Review (1/3): AoI with Correlated Sources}
-  \fontsize{6.8}{8}\selectfont\renewcommand{\arraystretch}{1.08}\setlength{\tabcolsep}{4pt}
-  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.3cm}YY@{}}
+\begin{frame}{Literature Review}
+  \fontsize{6.6}{7.9}\selectfont\renewcommand{\arraystretch}{1.12}\setlength{\tabcolsep}{4pt}
+  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.2cm}YY@{}}
     \toprule
     \textbf{S.No} & \textbf{Journal / Conference, Publisher (Year)} & \textbf{Technique adopted} & \textbf{Inference} & \textbf{Cons} \\
     \midrule
@@ -197,80 +158,65 @@
       & Randomised and Lyapunov max-weight policies for weighted AoI of correlated sources
       & Both within a factor 2 of optimal; correlation improves AoI scaling
       & Abstract correlation model; AoI, not estimation error \\
-    2 & Ramakanth, Tripathi \& Modiano \cite{2}: IEEE INFOCOM (2024); ext.\ IEEE TMC (2025)
-      & Kalman estimation of correlated Wiener processes; error bounded by weighted AoI
-      & Correlation-blind AoI scheduling is within a constant factor of optimal
-      & One source per slot; known covariance; the constant factor leaves room \\
-    3 & Erbayat, Maatouk, Zou \& Subramaniam \cite{3}: ACM MobiHoc (2024)
-      & AoI and state-error analysis when one update covers several processes
-      & Monitoring several processes from one sensor is not always beneficial
-      & Analytical; no learning; no real traces \\
-    4 & Erbayat \emph{et al.}\ \cite{4}: IEEE ISIT (2025)
-      & Probabilistic preemption; sum-of-linear-ratios solved by branch-and-bound
-      & Process diversity in a packet decides preemption priority
-      & Preemption only; no sensor selection under capacity $C$ \\
-    5 & Fidler, Gallistl, Champati \& Widmer \cite{5}: IEEE Trans.\ Commun. (2026)
+    2 & Fidler, Gallistl, Champati \& Widmer \cite{5}: IEEE Trans.\ Commun. (2026)
       & 2D-AoI: spatial distance mapped to an equivalent age (Gaussian kernels)
       & Distance acts as an age offset; values correlated samples
       & A metric, not a scheduler; known kernel assumed \\
+    3 & Chen, Liu, Quevedo, Li \& Vucetic \cite{8}: IEEE ICC (2023)
+      & Structure-enhanced DRL for multi-sensor remote-estimation MSE
+      & 10--25\% lower MSE and 50\% less training time than benchmark DRL
+      & Needs analytically derived policy structure; no learned correlation graph \\
+    4 & Reyhan \& Coleri \cite{9}: IEEE Trans.\ Commun. (2025)
+      & Optimisation theory + safe DRL (teacher--student) with Peak-AoI constraints
+      & Constraint-satisfying DRL converges faster and more stably
+      & Peak AoI bounded only in probability; optimises power, not error \\
+    5 & Zhao, Verma, Rao, Swami \& Segarra \cite{11}: IEEE Trans.\ Wireless Commun. (2023)
+      & GCN-guided tree search / distributed greedy for link scheduling; RL training
+      & Shallow GCN halves the sub-optimality gap of distributed greedy
+      & Throughput utility; graph = conflicts, not data correlation \\
+    6 & Wang, Wang, Chen \& Zhou \cite{12}: IEEE/IFIP WiOpt (2024)
+      & Age-aware randomised policy; per-slot Lyapunov drift solved by an unsupervised MPNN
+      & Permutation-equivariant MPNN scales and lowers AoI vs.\ baselines
+      & AoI only (content-agnostic); graph encodes interference \\
     \bottomrule
   \end{tabularx}
+  \vspace{0.3em}
+
+  {\scriptsize\color{muted} Further related work: \cite{3,4,6,7,10,13}. Foundations: AoI \cite{15}, max-age scheduling \cite{16}, AoI survey \cite{14}, DRL sensor scheduling \cite{18}.}
 \end{frame}
 
-\begin{frame}{Literature Review (2/3): Learning-based Scheduling}
-  \fontsize{6.8}{8}\selectfont\renewcommand{\arraystretch}{1.08}\setlength{\tabcolsep}{4pt}
-  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.3cm}YY@{}}
-    \toprule
-    \textbf{S.No} & \textbf{Journal / Conference, Publisher (Year)} & \textbf{Technique adopted} & \textbf{Inference} & \textbf{Cons} \\
-    \midrule
-    6 & Ceran, G\"und\"uz \& Gy\"orgy \cite{6}: IEEE JSAC (2021)
-      & Reinforcement learning for AoI in multi-user networks with HARQ and unknown channel statistics
-      & RL learns near-optimal AoI scheduling without knowing error probabilities
-      & Content-agnostic AoI; sources treated as independent \\
-    7 & Farag, Gidlund \& Stefanovic \cite{7}: IEEE GCAIoT (2021)
-      & Actor-critic DRL minimising average AoI plus AoI-threshold violation probability
-      & Lower average AoI and violation probability than related work for mission-critical IoT
-      & Threshold met only in probability; no correlation; simulation only \\
-    8 & Chen, Liu, Quevedo, Li \& Vucetic \cite{8}: IEEE ICC (2023)
-      & Structure-enhanced DRL (structured action selection + loss) for multi-sensor remote-estimation MSE
-      & 50\% less training time, 10--25\% lower MSE than benchmark DRL
-      & Needs the optimal-policy structure derived analytically first; no learned correlation graph \\
-    9 & Reyhan \& Coleri \cite{9}: IEEE Trans.\ Commun. (2025)
-      & Optimisation theory + safe DRL (teacher--student) with Peak-AoI violation constraints
-      & Constraint-satisfying DRL converges faster and more stably than DRL baselines
-      & Peak AoI bounded in probability, not hard; optimises power, not estimation error \\
-    \bottomrule
-  \end{tabularx}
-  \vspace{0.6em}
-
-  {\scriptsize\color{muted} Foundations: AoI introduced by Kaul \emph{et al.}\ \cite{15}; max-age scheduling by Kadota
-  \emph{et al.}\ \cite{16}; survey by Yates \emph{et al.}\ \cite{14}; DRL sensor scheduling by Leong \emph{et al.}\ \cite{18}.}
-\end{frame}
-
-\begin{frame}{Literature Review (3/3): GNNs for Wireless Scheduling}
-  \fontsize{6.8}{8}\selectfont\renewcommand{\arraystretch}{1.08}\setlength{\tabcolsep}{4pt}
-  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.3cm}YY@{}}
-    \toprule
-    \textbf{S.No} & \textbf{Journal / Conference, Publisher (Year)} & \textbf{Technique adopted} & \textbf{Inference} & \textbf{Cons} \\
-    \midrule
-    10 & Shen, Shi, Zhang \& Letaief \cite{10}: IEEE JSAC (2021)
-      & Message-passing GNNs for radio resource management; permutation-equivariant architecture
-      & GNNs generalise to much larger networks than they were trained on
-      & Power control / beamforming, not information freshness; graph = interference topology \\
-    11 & Zhao, Verma, Rao, Swami \& Segarra \cite{11}: IEEE Trans.\ Wireless Commun. (2023)
-      & GCN-guided tree search and distributed greedy for max-weight independent set link scheduling; RL training
-      & Shallow GCN halves the sub-optimality gap of distributed greedy with little extra cost
-      & Throughput utility; graph = conflict topology, not data correlation; no freshness \\
-    12 & Wang, Wang, Chen \& Zhou \cite{12}: IEEE/IFIP WiOpt (2024)
-      & Age-aware stationary randomised policy; per-slot Lyapunov drift solved by an unsupervised MPNN
-      & Permutation-equivariant MPNN scales to D2D networks and beats baselines on AoI
-      & AoI only (content-agnostic); graph encodes interference, not redundancy \\
-    13 & Wang \emph{et al.}\ \cite{13}: IEEE Trans.\ Wireless Commun. (2026)
-      & Federated GNN + multi-agent DRL for AoI-aware task offloading in vehicular edge computing
-      & Road scenes as graphs; federated aggregation protects privacy while reducing AoI
-      & Offloading, not sensing; simulation only; AoI, not estimation error \\
-    \bottomrule
-  \end{tabularx}
+% =================================================================== BASE PAPER
+\begin{frame}{Base Paper}
+  \begin{block}{R.~V.~Ramakanth, V.~Tripathi and E.~Modiano \cite{2}}
+    \small ``Monitoring Correlated Sources: AoI-based Scheduling is Nearly Optimal,'' \emph{IEEE INFOCOM 2024},
+    pp.~641--650; extended in \emph{IEEE Trans.\ Mobile Computing}, vol.~24, no.~2, 2025.
+  \end{block}
+  \begin{columns}[T]
+    \begin{column}{0.49\textwidth}
+      \sect{What the paper does}
+      \begin{itemize}\footnotesize\setlength\itemsep{0.3em}
+        \item Correlated sources modelled as a discrete-time Wiener process with multivariate Gaussian increments
+              (general covariance).
+        \item The monitor estimates all sources with a \textbf{Kalman filter}; only \textbf{one source} can be
+              observed per slot.
+        \item Shows the error of any policy that ignores instantaneous error is bounded above and below by a
+              \textbf{weighted sum of AoI}.
+        \item Result: AoI-based scheduling that \emph{ignores correlation} is within a constant factor of optimal;
+              optimal error grows roughly with the square of the number of sources.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \sect{How our project builds on it}
+      \begin{itemize}\footnotesize\setlength\itemsep{0.3em}
+        \item \textbf{Same estimation framework}: a Kalman-filter sink tracking correlated sources.
+        \item \textbf{Their policy class is our baseline}: Max-AoI (B1) is the unweighted AoI-based scheduler.
+        \item \textbf{Extensions}: $C>1$ polls per slot, stationary AR(1) model and correlation \emph{learned from data},
+              hard freshness bound, learned GNN policy, real sensor datasets.
+        \item \textbf{Finding}: the constant-factor gap matters in practice: correlation-aware learned scheduling
+              lowers the error by \good{20\%} on Intel Lab and \good{2.4\%} on PEMS-BAY versus AoI-based scheduling.
+      \end{itemize}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % =================================================================== 7 GAP
@@ -303,6 +249,8 @@
     \end{column}
   \end{columns}
 \end{frame}
+
+\section{Methodology}
 
 % =================================================================== 8 SYSTEM MODEL
 \begin{frame}{Methodology (1/5): System Model and Overall Pipeline}
@@ -488,6 +436,8 @@
   \end{columns}
 \end{frame}
 
+\section{Implementation}
+
 % =================================================================== 13 IMPLEMENTATION: STACK
 \begin{frame}[fragile]{Implementation (1/5): Tech Stack and Code Structure}
   \begin{columns}[T]
@@ -635,6 +585,8 @@ tests/           21 unit/regression tests
   \end{columns}
 \end{frame}
 
+\section{Results and Discussion}
+
 % =================================================================== 18 RESULTS REAL
 \begin{frame}{Results (1/5): Real Sensor Data, Held-out Test Periods}
   \centering
@@ -759,6 +711,8 @@ tests/           21 unit/regression tests
   \end{columns}
 \end{frame}
 
+\section{Conclusion and Future Work}
+
 % =================================================================== 23 CONCLUSION
 \begin{frame}{Conclusion}
   \begin{itemize}\setlength\itemsep{0.7em}
@@ -795,6 +749,8 @@ tests/           21 unit/regression tests
     \end{column}
   \end{columns}
 \end{frame}
+
+\section{References}
 
 % =================================================================== 25-26 REFERENCES
 \begin{frame}{References (1/3)}
@@ -840,21 +796,17 @@ tests/           21 unit/regression tests
   \end{enumerate}
 \end{frame}
 
-% =================================================================== 27 THANK YOU
-{
-\setbeamertemplate{footline}{}
-\setbeamercolor{background canvas}{bg=ink}
-\begin{frame}[plain]
+% =================================================================== THANK YOU
+\section*{Q\&A}
+\begin{frame}
   \centering
   \vspace{1.2cm}
-  {\color{white}\fontsize{34}{40}\selectfont\bfseries Thank you}\\[0.6em]
-  {\color{accentlight}\Large Questions \& Answers}\\[1.6em]
-  \begin{minipage}{0.7\textwidth}\centering\small\color{white!80}
-    {\color{white}\bfseries \studentname}\ \ $\cdot$\ \ \dept\\[0.5em]
-    \faGithub\ \ \texttt{github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler}\\[0.3em]
-    \faPlayCircle\ \ Live demo: \texttt{python -m gnn\_aoi serve}\ \ $\rightarrow$\ \ \texttt{localhost:8000}
-  \end{minipage}
+  {\usebeamercolor[fg]{structure}\fontsize{30}{36}\selectfont\bfseries Thank You}\\[0.5em]
+  {\Large Questions \& Answers}\\[1.5em]
+  \small Bhanu Prasad Palella \ $\cdot$\ Gullanki Bhagya Lakshmi \ $\cdot$\ Pavna Preethikha \ $\cdot$\ Madhumitha S\\[0.3em]
+  {\color{muted}Amrita School of Artificial Intelligence}\\[1.0em]
+  \faGithub\ \ \texttt{github.com/BhanuPrasadPalella-01/gnn-aoi-scheduler}\\[0.3em]
+  \faPlayCircle\ \ Live demo: \texttt{python -m gnn\_aoi serve}\ \ $\rightarrow$\ \ \texttt{localhost:8000}
 \end{frame}
-}
 
 \end{document}
