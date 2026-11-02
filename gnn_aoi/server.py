@@ -125,7 +125,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*a, directory=str(FRONTEND), **kw)
 
     def log_message(self, fmt, *args):  # keep the console readable
-        if "/api/step" not in (args[0] if args else ""):
+        if "/api/step" not in (str(args[0]) if args else ""):
             super().log_message(fmt, *args)
 
     def _json(self, obj, code=200):
@@ -139,7 +139,15 @@ class Handler(SimpleHTTPRequestHandler):
 
     def translate_path(self, path):
         if path.startswith("/results/figures/"):
-            return str(ROOT / path.lstrip("/").split("?")[0])
+            # Resolve and confine to results/figures/: a raw "../" in the
+            # request path must not escape the folder (arbitrary file read).
+            from urllib.parse import unquote
+            figures = (ROOT / "results" / "figures").resolve()
+            rel = unquote(path.split("?", 1)[0].split("#", 1)[0])[len("/results/figures/"):]
+            target = (figures / rel).resolve()
+            if not target.is_relative_to(figures):
+                return str(figures / "__not_found__")
+            return str(target)
         return super().translate_path(path)
 
     def do_HEAD(self):
@@ -168,7 +176,12 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
+            length = int(self.headers.get("Content-Length", 0) or 0)
+            if length > 64 * 1024:  # the API only takes tiny JSON bodies
+                return self._json({"error": "request body too large"}, 413)
+            body = json.loads(self.rfile.read(length) or b"{}")
+            if body.get("dataset", "intel_lab") not in C_RANGE:
+                return self._json({"error": "unknown dataset"}, 400)
             if self.path.startswith("/api/session"):
                 return self._json(new_session(body))
             if self.path.startswith("/api/step"):
