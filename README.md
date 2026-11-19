@@ -154,6 +154,23 @@ flowchart LR
 
 ![Training](results/figures/training.png)
 
+### With vs without PPO
+
+The same GNN evaluated before any training (it then picks exactly like Kalman-greedy) and after PPO, on the
+real held-out test windows (`python -m gnn_aoi experiments ppo_ablation ppo_timeline`):
+
+| Setting | Error reduction from PPO | Windows won | Wilcoxon p |
+|---|---|---|---|
+| Intel Lab (real) | 15.4% | 10 / 10 | 0.002 |
+| PEMS-BAY (real) | 5.6% | 14 / 15 | 0.0003 |
+| Synthetic, uniform | 2.6% | 22 / 30 | 0.008 |
+| Synthetic, clustered | 1.2% | 17 / 30 | 0.64 |
+
+PPO is where the real-data gain comes from; where the sink's model is exact (synthetic), it adds little.
+
+![With vs without PPO](results/figures/ppo_ablation.png)
+![Error over time](results/figures/ppo_over_time.png)
+
 ## Honest findings and limitations
 
 * **Where it helps most:** dense spatial correlation and a scarce channel (Intel Lab, clustered layouts).

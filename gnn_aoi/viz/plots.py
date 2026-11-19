@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from gnn_aoi.viz import style
-from gnn_aoi.viz.style import INK, INK_2, LABELS, MUTED, POLICY_COLORS as COL, POLICY_ORDER, SURFACE
+from gnn_aoi.viz.style import GRID as GRID_LINE, INK, INK_2, LABELS, MUTED, POLICY_COLORS as COL, POLICY_ORDER, SURFACE
 
 DATA = Path("results/data")
 FIGS = Path("results/figures")
@@ -287,8 +287,116 @@ def fig_real_sweeps():
     _save(fig, "real_sweeps")
 
 
+def fig_ppo_ablation():
+    d = _load("ppo_ablation")
+    if not d:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4.6))
+    for ax, key in zip(axes, ("intel_lab", "pems_bay")):
+        sc = d[key]["scenario"]
+        title, unit = {"intel_lab": ("Intel Lab", "°C"), "pems_bay": ("PEMS-BAY", "mph")}[key]
+        _bars(ax, d[key]["results"], f"{title} · {sc['M']} sensors, {sc['C']} polls/slot, AoI ≤ {sc['freshness']}",
+              metric="rmse_units", xlabel=f"Error at the sink (RMSE, {unit}, lower is better)", fmt="{:.3f}")
+    fig.tight_layout()
+    _header(fig, "With vs without PPO: the same GNN before and after training",
+            "Real held-out test windows; mean ± 95% CI. Without PPO the network only reproduces its starting rule "
+            "(Kalman-greedy) or adds random noise to it.")
+    _save(fig, "ppo_ablation")
+
+
+_REAL_TITLES = {"intel_lab": ("Intel Lab", "°C"), "pems_bay": ("PEMS-BAY", "mph")}
+
+
+def fig_ppo_per_window():
+    """Dumbbells: every real test window, without PPO -> with PPO."""
+    d = _load("ppo_ablation")
+    if not d:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.2))
+    for ax, key in zip(axes, ("intel_lab", "pems_bay")):
+        title, unit = _REAL_TITLES[key]
+        r = d[key]["results"]
+        a = np.array(r["gnn_init"]["rmse_units_per_layout"])
+        b = np.array(r["gnn"]["rmse_units_per_layout"])
+        y = np.arange(len(a))[::-1]
+        for yi, ai, bi in zip(y, a, b):
+            ax.plot([ai, bi], [yi, yi], color=GRID_LINE, lw=2.5, zorder=2)
+            ax.text(max(ai, bi) + (a.max() * 0.015), yi, f"{(bi - ai) / ai * 100:+.0f}%", va="center",
+                    fontsize=8.5, color=INK_2)
+        ax.scatter(a, y, s=60, color=COL["gnn_init"], zorder=3, label="Without PPO")
+        ax.scatter(b, y, s=60, color=COL["gnn"], zorder=4, label="With PPO")
+        ax.set_yticks(y, [f"Window {i + 1}" for i in range(len(a))])
+        ax.grid(axis="y", visible=False)
+        ax.set_xlim(min(b.min(), a.min()) * 0.9, max(a.max(), b.max()) * 1.12)
+        ax.set_xlabel(f"Error at the sink (RMSE, {unit}, lower is better)")
+        ax.set_title(f"{title}: with PPO is lower in {(b < a).sum()} of {len(a)} test windows")
+        ax.legend(loc="lower right", fontsize=9.5)
+    fig.tight_layout()
+    _header(fig, "Every test window: without PPO vs with PPO",
+            "Each row is one held-out window of real data; the line joins the same window before and after PPO training.")
+    _save(fig, "ppo_per_window")
+
+
+def fig_ppo_over_time():
+    """Sink error slot by slot, averaged over all real test windows."""
+    d = _load("ppo_timeline")
+    if not d:
+        return
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4.4))
+    for ax, key in zip(axes, ("intel_lab", "pems_bay")):
+        title, unit = _REAL_TITLES[key]
+        block = d[key]
+        k = 12  # 1-hour moving average
+        for n in ("max_age", "gnn_init", "gnn"):
+            tr = np.array(block["policies"][n]["rmse_units"]).mean(0)
+            sm = np.convolve(tr, np.ones(k) / k, "valid")
+            hours = (np.arange(len(sm)) + k - 1) * block["slot_minutes"] / 60
+            ax.plot(hours, sm, color=COL[n], lw=2.4 if n == "gnn" else 1.8,
+                    label={"max_age": "Max-AoI (classic)", "gnn_init": "GNN without PPO", "gnn": "GNN with PPO (ours)"}[n])
+        ax.axvspan(0, 50 * block["slot_minutes"] / 60, color=GRID_LINE, alpha=0.35, lw=0)
+        ax.text(0.1, ax.get_ylim()[1], " warm-up (not scored)", va="top", fontsize=8.5, color=MUTED)
+        ax.set_xlabel("Hours into the test window")
+        ax.set_ylabel(f"Error at the sink ({unit})")
+        ax.set_title(f"{title}: error over time (mean of {len(block['policies']['gnn']['rmse_units'])} windows)")
+    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.08), fontsize=10.5)
+    _header(fig, "Error over time: with PPO is lower almost all the time, most of all at the peaks",
+            "Slot-by-slot sink error, 1-hour moving average, averaged over the held-out test windows.")
+    _save(fig, "ppo_over_time")
+
+
+def fig_ppo_gain():
+    """How much PPO adds in each setting (error reduction vs the same GNN without PPO)."""
+    d = _load("ppo_ablation")
+    if not d:
+        return
+    from scipy.stats import wilcoxon
+    keys = [("intel_lab", "Intel Lab\n(real)", "rmse_units"), ("pems_bay", "PEMS-BAY\n(real)", "rmse_units"),
+            ("uniform", "Simulated\nspread-out", "mse"), ("clustered", "Simulated\nclustered", "mse")]
+    fig, ax = plt.subplots(figsize=(9, 4.4))
+    for i, (key, lbl, m) in enumerate(keys):
+        r = d[key]["results"]
+        a, b = r["gnn_init"][m][0], r["gnn"][m][0]
+        gain = (a - b) / a * 100
+        pa = np.array(r["gnn_init"][f"{m}_per_layout"]); pb = np.array(r["gnn"][f"{m}_per_layout"])
+        p = wilcoxon(pb, pa).pvalue
+        wins = int((pb < pa).sum())
+        ax.bar(i, gain, width=0.6, color=COL["gnn"] if p < 0.05 else COL["gnn_init"], zorder=3)
+        ax.text(i, gain + 0.4, f"{gain:.1f}%\nwins {wins}/{len(pa)}\np = {p:.2g}", ha="center", va="bottom",
+                fontsize=9, color=INK)
+        ax.set_xticks(range(len(keys)), [k[1] for k in keys])
+    ax.set_ylim(0, 22)
+    ax.set_ylabel("Error reduction from PPO (%)")
+    ax.grid(axis="x", visible=False)
+    fig.tight_layout()
+    _header(fig, "How much PPO training adds",
+            "Same GNN, before vs after PPO. Dark blue = significant (Wilcoxon p < 0.05). Biggest on real data.")
+    _save(fig, "ppo_gain")
+
+
 def all_figures():
     style.apply()
     for f in (fig_real_main, fig_real_sweeps, fig_poll_map, fig_main, fig_tradeoff, fig_sweeps,
-              fig_compute, fig_training, fig_pilot):
+              fig_compute, fig_training, fig_pilot, fig_ppo_ablation, fig_ppo_per_window, fig_ppo_over_time, fig_ppo_gain):
         f()

@@ -22,12 +22,16 @@ POLICY_COLORS = {
     "max_variance": "#008300",   # green
     "random": "#9085e9",         # violet
     "gnn_no_mp": "#e66767",      # red (ablation)
+    "gnn_init": "#86b6ef",       # light blue (GNN before PPO)
+    "gnn_random": "#9085e9",     # violet (GNN, random weights, no PPO)
 }
-POLICY_ORDER = ["random", "max_variance", "max_age", "greedy_diverse", "kalman_greedy", "gnn_no_mp", "gnn", "oracle"]
+POLICY_ORDER = ["random", "max_variance", "max_age", "greedy_diverse", "kalman_greedy", "gnn_random", "gnn_init",
+                "gnn_no_mp", "gnn", "oracle"]
 LABELS = {
     "random": "Random", "max_variance": "Max-uncertainty", "max_age": "Max-AoI (B1)",
     "greedy_diverse": "Corr-diverse (v4)", "kalman_greedy": "Kalman-greedy",
     "gnn": "GNN-PPO (ours)", "oracle": "Oracle-greedy (true Σ)", "gnn_no_mp": "Ablation: no message passing",
+    "gnn_init": "GNN, no PPO (initial weights)", "gnn_random": "GNN, no PPO (random weights)",
 }
 
 # sequential (uncertainty) and diverging (field value) maps from the same ramps

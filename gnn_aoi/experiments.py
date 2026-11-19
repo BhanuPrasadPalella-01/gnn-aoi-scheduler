@@ -25,6 +25,10 @@ REAL_CORE = ("max_age", "greedy_diverse", "kalman_greedy", "gnn_no_mp", "gnn")
 
 
 ABLATION_CKPT = Path("checkpoints/ablation_no_mp.pt")
+# the same GNN before any PPO: as initialised for training (= Kalman-greedy),
+# and with ordinary random weights in the decoder
+NO_PPO_CKPTS = {"gnn_init": (Path("checkpoints/ablation_no_ppo_init.pt"), "GNN without PPO (initial weights)"),
+                "gnn_random": (Path("checkpoints/ablation_no_ppo_random.pt"), "GNN without PPO (random weights)")}
 
 
 def policies(names=None, checkpoint="checkpoints/gnn_scheduler.pt"):
@@ -36,6 +40,9 @@ def policies(names=None, checkpoint="checkpoints/gnn_scheduler.pt"):
         elif n == "gnn_no_mp":
             if ABLATION_CKPT.exists():
                 out.append(GNNPolicy(str(ABLATION_CKPT), "gnn_no_mp", "Ablation: no message passing"))
+        elif n in NO_PPO_CKPTS:
+            path, label = NO_PPO_CKPTS[n]
+            out.append(GNNPolicy(str(path), n, label))
         else:
             out.append(BASELINES[n]())
     return out
@@ -209,6 +216,52 @@ def live_exports():
         print(f"  wrote {p}", flush=True)
 
 
+def _save_untrained(seed=0):
+    import torch
+    from gnn_aoi.gnn.model import Actor
+    from gnn_aoi.gnn.train import TrainConfig, save
+    cfg = TrainConfig()
+    torch.manual_seed(seed)
+    actor = Actor(cfg.d, cfg.layers)
+    save(actor, cfg, NO_PPO_CKPTS["gnn_init"][0], extra={"stage": "untrained (initial weights)"})
+    for lin in (actor.base[-1], actor.q):  # undo the zero init: plain random network
+        lin.reset_parameters()
+    save(actor, cfg, NO_PPO_CKPTS["gnn_random"][0], extra={"stage": "untrained (random weights)", "seed": seed})
+
+
+def ppo_ablation(n_layouts=30, T=400):
+    """With vs without PPO: the same GNN before any training and after PPO
+    (with and without message passing), on the real test windows and the
+    synthetic headline layouts."""
+    _save_untrained()
+    names = ("max_age", "kalman_greedy", "gnn_random", "gnn_init", "gnn_no_mp", "gnn")
+    out = {}
+    for name, cfg in REAL.items():
+        sc = _real_sc(name)
+        res = benchmark(sc, policies(names), T=cfg["T"], envs=RealEnvs(sc, name, cfg["windows"], cfg["T"]))
+        out[name] = {"scenario": sc.to_dict(), "results": _strip(res)}
+        print(f"  ppo_ablation/{name} done", flush=True)
+    for key, sc in {"uniform": HEADLINE, "clustered": HEADLINE.with_(layout="clustered")}.items():
+        out[key] = {"scenario": sc.to_dict(), "results": _strip(benchmark(sc, policies(names), n_layouts, T))}
+        print(f"  ppo_ablation/{key} done", flush=True)
+    return _save("ppo_ablation", out)
+
+
+def ppo_timeline():
+    """Slot-by-slot sink error with and without PPO on every real test
+    window, for the over-time plot."""
+    out = {}
+    for name, cfg in REAL.items():
+        sc = _real_sc(name)
+        envs = RealEnvs(sc, name, cfg["windows"], cfg["T"])
+        out[name] = {"scenario": sc.to_dict(), "slot_minutes": 5, "policies": {}}
+        for pol in policies(("max_age", "gnn_init", "gnn")):
+            tr = [run_episode(envs(k), pol, cfg["T"])[0]["rmse_units"].tolist() for k in range(len(envs.starts()))]
+            out[name]["policies"][pol.name] = {"label": pol.label, "rmse_units": tr}
+        print(f"  ppo_timeline/{name} done", flush=True)
+    return _save("ppo_timeline", out)
+
+
 def significance():
     """Paired per-instance comparison of the GNN against every other policy
     (win rate + Wilcoxon signed-rank p-value) on the synthetic and real
@@ -236,6 +289,6 @@ ALL = {
     "real_main": real_benchmark, "real_capacity": real_capacity, "real_scale": real_scale,
     "main": main_benchmark, "significance": significance, "unconstrained": unconstrained,
     "capacity": capacity_sweep, "correlation": correlation_sweep, "scale": scale_sweep,
-    "interference": interference_sweep, "pilot": pilot_sweep,
+    "interference": interference_sweep, "pilot": pilot_sweep, "ppo_ablation": ppo_ablation, "ppo_timeline": ppo_timeline,
     "poll_frequency": poll_frequency, "replay": replay, "live": live_exports,
 }
