@@ -1,6 +1,6 @@
 % GNN-AoI: Final Project Presentation (LaTeX Beamer, Madrid theme)
 % Compile:  tectonic main.tex      (or on Overleaf: pdfLaTeX or XeLaTeX)
-\documentclass[aspectratio=169,10pt]{beamer}
+\documentclass[aspectratio=169,10pt,xcolor=table]{beamer}
 \usepackage[utf8]{inputenc}
 
 \usetheme{Madrid}
@@ -58,12 +58,11 @@
 
 \institute[ASAI] % (optional)
 {
-  Amrita School of Artificial Intelligence\\[0.3em]
-  Guide: [guide's name and designation]
+  Amrita School of Artificial Intelligence
 }
 
-\date[Final Review] % (optional)
-{Final Project Presentation, [presentation date]}
+\date[30 October 2026] % (optional)
+{Final Project Presentation, 30 October 2026}
 
 %\logo{\includegraphics[height=1cm]{logo}}   % add a college logo file here if needed
 
@@ -149,102 +148,65 @@
 
 % =================================================================== 4-6 LITERATURE
 \begin{frame}{Literature Review}
-  \fontsize{6.6}{7.9}\selectfont\renewcommand{\arraystretch}{1.12}\setlength{\tabcolsep}{4pt}
-  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.2cm}YY@{}}
+  \fontsize{7.4}{8.8}\selectfont\renewcommand{\arraystretch}{1.25}\setlength{\tabcolsep}{4pt}
+  \begin{tabularx}{\textwidth}{@{}c>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{3.3cm}YY@{}}
     \toprule
     \textbf{S.No} & \textbf{Journal / Conference, Publisher (Year)} & \textbf{Technique adopted} & \textbf{Inference} & \textbf{Cons} \\
     \midrule
-    1 & Tripathi \& Modiano \cite{1}: ACM MobiHoc (2022); ext.\ IEEE/ACM ToN (2024)
-      & Randomised and Lyapunov max-weight policies for weighted AoI of correlated sources
-      & Both within a factor 2 of optimal; correlation improves AoI scaling
-      & Abstract correlation model; AoI, not estimation error \\
-    2 & Fidler, Gallistl, Champati \& Widmer \cite{5}: IEEE Trans.\ Commun. (2026)
-      & 2D-AoI: spatial distance mapped to an equivalent age (Gaussian kernels)
-      & Distance acts as an age offset; values correlated samples
-      & A metric, not a scheduler; known kernel assumed \\
-    3 & Chen, Liu, Quevedo, Li \& Vucetic \cite{8}: IEEE ICC (2023)
-      & Structure-enhanced DRL for multi-sensor remote-estimation MSE
-      & 10--25\% lower MSE and 50\% less training time than benchmark DRL
-      & Needs analytically derived policy structure; no learned correlation graph \\
-    4 & Reyhan \& Coleri \cite{9}: IEEE Trans.\ Commun. (2025)
-      & Optimisation theory + safe DRL (teacher--student) with Peak-AoI constraints
-      & Constraint-satisfying DRL converges faster and more stably
-      & Peak AoI bounded only in probability; optimises power, not error \\
-    5 & Zhao, Verma, Rao, Swami \& Segarra \cite{11}: IEEE Trans.\ Wireless Commun. (2023)
-      & GCN-guided tree search / distributed greedy for link scheduling; RL training
-      & Shallow GCN halves the sub-optimality gap of distributed greedy
-      & Throughput utility; graph = conflicts, not data correlation \\
-    6 & Wang, Wang, Chen \& Zhou \cite{12}: IEEE/IFIP WiOpt (2024)
-      & Age-aware randomised policy; per-slot Lyapunov drift solved by an unsupervised MPNN
-      & Permutation-equivariant MPNN scales and lowers AoI vs.\ baselines
-      & AoI only (content-agnostic); graph encodes interference \\
+    1 & Tripathi \& Modiano \cite{1}: ACM MobiHoc (2022)
+      & Max-weight and randomised policies for AoI with correlated sources
+      & Correlation lowers AoI; policies within 2$\times$ of optimal
+      & Optimises freshness (AoI), not estimation accuracy \\
+    2 & Chen, Liu, Quevedo, Li \& Vucetic \cite{8}: IEEE ICC (2023)
+      & Deep RL guided by known policy structure for sensor scheduling
+      & 10--25\% lower error and 50\% faster training than plain deep RL
+      & Structure must be derived by hand; no learned sensor graph \\
+    \rowcolor{accentlight}
+    3 & \textbf{Base paper}: Ramakanth, Tripathi \& Modiano \cite{2}: IEEE INFOCOM (2024)
+      & Kalman filter tracks correlated sources; one source polled per slot
+      & Simple AoI scheduling (poll the oldest) is provably close to optimal
+      & One poll per slot; correlation assumed known; theory and simulation only \\
+    4 & Wang, Wang, Chen \& Zhou \cite{12}: IEEE/IFIP WiOpt (2024)
+      & Graph neural network chooses which links transmit to cut AoI
+      & GNN scales to large networks and beats baselines
+      & Graph shows interference, not which data is redundant \\
+    5 & Reyhan \& Coleri \cite{9}: IEEE Trans.\ Commun. (2025)
+      & Safe deep RL with a teacher that enforces AoI limits
+      & Stable training that respects AoI constraints
+      & AoI limit met only with high probability; minimises power, not error \\
     \bottomrule
   \end{tabularx}
-  \vspace{0.3em}
+  \vspace{0.5em}
 
-  {\scriptsize\color{muted} Further related work: \cite{3,4,6,7,10,13}. Foundations: AoI \cite{15}, max-age scheduling \cite{16}, AoI survey \cite{14}, DRL sensor scheduling \cite{18}.}
+  {\footnotesize \textbf{How we build on the base paper:} same Kalman-filter idea, but several polls per slot,
+  correlations \emph{learned from real data}, a hard freshness rule, and a learned GNN scheduler. Its ``poll the
+  oldest'' policy is our Max-AoI baseline.}
 \end{frame}
 
-% =================================================================== BASE PAPER
-\begin{frame}{Base Paper}
-  \begin{block}{R.~V.~Ramakanth, V.~Tripathi and E.~Modiano \cite{2}}
-    \small ``Monitoring Correlated Sources: AoI-based Scheduling is Nearly Optimal,'' \emph{IEEE INFOCOM 2024},
-    pp.~641--650; extended in \emph{IEEE Trans.\ Mobile Computing}, vol.~24, no.~2, 2025.
-  \end{block}
-  \begin{columns}[T]
-    \begin{column}{0.49\textwidth}
-      \sect{What the paper does}
-      \begin{itemize}\footnotesize\setlength\itemsep{0.3em}
-        \item Correlated sources modelled as a discrete-time Wiener process with multivariate Gaussian increments
-              (general covariance).
-        \item The monitor estimates all sources with a \textbf{Kalman filter}; only \textbf{one source} can be
-              observed per slot.
-        \item Shows the error of any policy that ignores instantaneous error is bounded above and below by a
-              \textbf{weighted sum of AoI}.
-        \item Result: AoI-based scheduling that \emph{ignores correlation} is within a constant factor of optimal;
-              optimal error grows roughly with the square of the number of sources.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.49\textwidth}
-      \sect{How our project builds on it}
-      \begin{itemize}\footnotesize\setlength\itemsep{0.3em}
-        \item \textbf{Same estimation framework}: a Kalman-filter sink tracking correlated sources.
-        \item \textbf{Their policy class is our baseline}: Max-AoI (B1) is the unweighted AoI-based scheduler.
-        \item \textbf{Extensions}: $C>1$ polls per slot, stationary AR(1) model and correlation \emph{learned from data},
-              hard freshness bound, learned GNN policy, real sensor datasets.
-        \item \textbf{Finding}: the constant-factor gap matters in practice: correlation-aware learned scheduling
-              lowers the error by \good{20\%} on Intel Lab and \good{2.4\%} on PEMS-BAY versus AoI-based scheduling.
-      \end{itemize}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% =================================================================== 7 GAP
+% =================================================================== GAP
 \begin{frame}{Research Gap and Novelty}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
       \sect{Research gap}
-      \begin{itemize}\small\setlength\itemsep{0.4em}
-        \item \textbf{Correlation-aware AoI work} \cite{1--5} is analytical: hand-specified correlation
-              models, often one source per slot, and no learned policy.
-        \item \textbf{Learned schedulers} (DRL \cite{6--9}, GNN \cite{10--13}) optimise AoI, throughput or power;
-              their graphs describe \emph{interference}, not \emph{what the data says}.
-        \item Freshness is usually a \textbf{soft or probabilistic} constraint \cite{7,9}.
-        \item Few works test on \textbf{real multi-sensor recordings} with a strict train/test split in time.
+      \begin{itemize}\small\setlength\itemsep{0.5em}
+        \item Correlation-aware AoI work assumes the correlation is \textbf{known in advance}; nobody learns it from data.
+        \item Learned schedulers (deep RL, GNNs) optimise \textbf{freshness or throughput}, not how accurately the
+              sink knows every sensor.
+        \item Their graphs describe \textbf{radio interference}, not which sensors carry the same information.
+        \item Freshness limits are \textbf{soft}: met only on average or with high probability.
+        \item Very few results on \textbf{real multi-sensor recordings}.
       \end{itemize}
     \end{column}
     \begin{column}{0.5\textwidth}
       \sect{Novelty of this work}
-      \begin{itemize}\small\setlength\itemsep{0.4em}
-        \item[\color{good}\faCheck] \textbf{Correlation graph learned from data}, used twice: as a GNN
-              graph and inside the sink's Kalman filter.
-        \item[\color{good}\faCheck] \textbf{Two graphs per slot}: static correlation $A_{\text{corr}}$ and
-              the sink's live posterior correlation $A_{\text{post}}$.
-        \item[\color{good}\faCheck] \textbf{Residual pointer decoder} initialised to Kalman-greedy;
-              PPO only learns where looking ahead beats greedy.
-        \item[\color{good}\faCheck] \textbf{Hard AoI guarantee} for every policy (forced polls).
-        \item[\color{good}\faCheck] \textbf{Real data}: Intel Lab (45) and PEMS-BAY (325), held-out
-              test periods, Wilcoxon tests, plus a live demo.
+      \begin{itemize}\small\setlength\itemsep{0.5em}
+        \item[\color{good}\faCheck] Sensor \textbf{correlation graph learned from real data}.
+        \item[\color{good}\faCheck] GNN looks at two graphs: who is correlated \emph{in general}, and who is redundant
+              \emph{right now}.
+        \item[\color{good}\faCheck] Scheduler \textbf{starts as the best classical method} (Kalman-greedy); RL only
+              learns improvements.
+        \item[\color{good}\faCheck] \textbf{Hard freshness guarantee} for every sensor.
+        \item[\color{good}\faCheck] Tested on \textbf{real data}: 45 lab sensors and 325 freeway sensors, plus a live demo.
       \end{itemize}
     \end{column}
   \end{columns}
@@ -252,185 +214,182 @@
 
 \section{Methodology}
 
-% =================================================================== 8 SYSTEM MODEL
+% =================================================================== SYSTEM MODEL
 \begin{frame}{Methodology (1/5): System Model and Overall Pipeline}
   \centering
   \begin{tikzpicture}[node distance=0.55cm and 0.75cm]
-    % sensor field
     \node[draw=rule,fill=paper,rounded corners=5pt,minimum width=3.4cm,minimum height=3.1cm] (field) {};
-    \node[lab,anchor=north] at (field.north) {\textbf{Sensor field}\\ $M$ sensors, $x_t\in\mathbb{R}^M$};
+    \node[lab,anchor=north] at (field.north) {\textbf{Sensor field}\\ $M$ sensors};
     \foreach \x/\y [count=\i] in {-1.1/-0.2,-0.5/0.3,0.2/-0.1,0.9/0.4,-0.8/-0.9,0.0/-0.8,0.8/-0.6,1.2/-1.1,-1.3/-1.3}
       \node[circle,draw=accent,fill=accent!20,minimum size=0.26cm,inner sep=0] (n\i) at ($(field.center)+(\x,\y)$) {};
     \draw[accent!50] (n1)--(n2)--(n3)--(n4) (n1)--(n5)--(n6)--(n3) (n6)--(n7)--(n8) (n5)--(n9);
 
-    \node[box=orangeb,right=1.9cm of field,text width=2.6cm,yshift=0.9cm] (chan) {\textbf{Wireless channel}\\ $\le C$ polls / slot\\ interference conflicts};
-    \node[box=ink,right=0.9cm of chan,text width=2.7cm] (sink) {\textbf{Sink: Kalman filter}\\ estimate $\hat x_t$\\ covariance $P_t$};
-    \node[box=accent,below=1.0cm of sink,text width=2.7cm] (gnn) {\textbf{GNN scheduler}\\ picks poll set $S_t$};
-    \node[box=good,left=0.9cm of gnn,text width=2.6cm] (guard) {\textbf{Freshness guard}\\ forces sensors with\\ AoI $\ge F$};
+    \node[box=orangeb,right=1.9cm of field,text width=2.6cm,yshift=0.9cm] (chan) {\textbf{Wireless channel}\\ only $C$ sensors\\ per time slot};
+    \node[box=ink,right=0.9cm of chan,text width=2.8cm] (sink) {\textbf{Sink (Kalman filter)}\\ best guess of every sensor + how unsure it is};
+    \node[box=accent,below=1.0cm of sink,text width=2.8cm] (gnn) {\textbf{GNN scheduler}\\ chooses who\\ transmits next};
+    \node[box=good,left=0.9cm of gnn,text width=2.6cm] (guard) {\textbf{Freshness rule}\\ anyone silent too\\ long must report};
 
-    \draw[arr] (field.east|-chan.west) -- node[lab,below,yshift=-1pt]{$y_t=x_t[S_t]+n_t$} (chan.west);
+    \draw[arr] (field.east|-chan.west) -- node[lab,below,yshift=-1pt]{readings} (chan.west);
     \draw[arr] (chan) -- (sink);
-    \draw[arr] (sink) -- node[lab,right]{$P_t$, AoI,\\ graphs} (gnn);
-    \draw[arr] (guard) -- node[lab,above]{forced} (gnn);
+    \draw[arr] (sink) -- node[lab,right]{what the\\ sink knows} (gnn);
+    \draw[arr] (guard) -- (gnn);
     \draw[arr] (gnn.south) -- ++(0,-0.4) -| (field.south);
-    \node[lab,anchor=north] at ($(gnn.south)!0.5!(guard.south)+(0,-0.42)$) {poll request $S_t$ = forced $\cup$ chosen};
+    \node[lab,anchor=north] at ($(gnn.south)!0.5!(guard.south)+(0,-0.42)$) {poll request for the next slot};
 
     \node[draw=rule,fill=paper,rounded corners=4pt,anchor=north,text width=12.6cm,font=\scriptsize,align=left]
-      at ($(field.south)!0.5!(gnn.south)+(0,-1.15)$)
-      {\textbf{Pipeline:}\quad training data $\rightarrow$ fit AR(1) + innovation covariance $\rightarrow$ correlation graph
-      $\rightarrow$ simulate / replay $\rightarrow$ PPO-train GNN $\rightarrow$ evaluate on held-out test period $\rightarrow$ live demo};
+      at ($(field.south)!0.5!(gnn.south)+(0,-1.45)$)
+      {\textbf{Pipeline:}\quad historical data $\rightarrow$ learn how sensors behave and which are correlated
+      $\rightarrow$ train the GNN by trial and reward $\rightarrow$ test on unseen days $\rightarrow$ live demo};
   \end{tikzpicture}
 \end{frame}
 
-% =================================================================== 9 MODEL
-\begin{frame}{Methodology (2/5): Correlation Graph and Kalman Sink}
+% =================================================================== SINK
+\begin{frame}{Methodology (2/5): How the Sink Understands the Field}
   \begin{columns}[T]
-    \begin{column}{0.52\textwidth}
-      \sect{Field model, fitted on the training period only}
-      \vspace{-0.6em}
-      \begin{align*}
-        x_t &= \operatorname{diag}(\rho)\,x_{t-1} + w_t, & w_t &\sim \mathcal N(0,Q)\\
-        y_t &= x_t[S_t] + n_t, & n_t &\sim \mathcal N(0,rI)
-      \end{align*}
+    \begin{column}{0.5\textwidth}
+      \sect{Step 1: Learn each sensor's behaviour}
       \begin{itemize}\small
-        \item $\rho_i$: least squares on one-step changes, per sensor
-        \item $Q$: covariance of the residuals (innovations)
+        \item From the training days only, learn how much each reading changes from one 5-minute slot to the next.
       \end{itemize}
-      \sect{Correlation graph}
-      \vspace{-0.4em}
-      \[ (A_{\text{corr}})_{ij} = |\hat r_{ij}|\cdot\mathbf{1}\big[\,|\hat r_{ij}|\ge 0.3\,\big] \]
-      {\small $\hat r$ = innovation correlation. Edges link sensors whose \emph{surprises} move together.}
+      \sect{Step 2: Build the correlation graph}
+      \begin{itemize}\small
+        \item Connect two sensors if their \emph{unexpected} changes move together (correlation $\ge 0.3$).
+        \item Example: two thermometers in the same room warm up together, so they are linked.
+      \end{itemize}
+      \sect{Step 3: Kalman filter at the sink}
+      \begin{itemize}\small
+        \item \textbf{Predict}: each slot, move every estimate forward; uncertainty grows.
+        \item \textbf{Correct}: when readings arrive, fix the estimates; uncertainty shrinks.
+      \end{itemize}
     \end{column}
-    \begin{column}{0.46\textwidth}
-      \sect{Sink: Kalman filter}
-      \vspace{-0.6em}
-      \begin{align*}
-        P^-_t &= D\,P_{t-1}\,D + Q,\qquad D=\operatorname{diag}(\rho)\\
-        P_t &= P^-_t - P^-_{:,S}\big(P^-_{SS}+rI\big)^{-1}P^-_{S,:}
-      \end{align*}
-      \begin{block}{Why this matters}
-        \small Polling sensor $j$ lowers $P_{ii}$ for every \emph{correlated} neighbour $i$.
-        The variance removed by polling $i$ next is
-        \[ g_i = \frac{\sum_k P_{ki}^2}{P_{ii}+r}, \]
-        which drives both the Kalman-greedy baseline \cite{19} and our decoder.
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Key idea}
+        \small Polling one sensor also reduces the sink's uncertainty about its \textbf{correlated neighbours}.
+        So some sensors are cheap to infer and need fewer polls.
       \end{block}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% =================================================================== 10 FORMULATION
-\begin{frame}{Methodology (3/5): Formulation and Freshness Guarantee}
-  \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      \sect{Objective}
-      \vspace{-0.4em}
-      \[
-        \min_{\pi}\; \mathbb E\Big[\tfrac{1}{TM}\textstyle\sum_{t=1}^{T}\lVert x_t-\hat x_t\rVert^2\Big]
-      \]
-      \vspace{-0.6em}
-      \sect{subject to, in every slot $t$}
-      \begin{itemize}\small
-        \item capacity: $|S_t|\le C$
-        \item interference: no two conflicting sensors in $S_t$
-        \item \textbf{freshness}: $a_i(t)\le F$ for every sensor $i$
-      \end{itemize}
-      \sect{Age of Information}
-      \vspace{-0.5em}
-      \[
-        a_i(t+1)=\begin{cases}1 & i\in S_t\\ a_i(t)+1 & \text{otherwise}\end{cases}
-      \]
-    \end{column}
-    \begin{column}{0.43\textwidth}
-      \sect{Freshness guard (hard, every policy)}
-      \begin{enumerate}\small\setlength\itemsep{0.3em}
-        \item Forced set $\mathcal F_t=\{i: a_i(t)\ge F\}$, oldest first, conflict-feasible.
-        \item Forced sensors are committed \emph{before} the policy acts.
-        \item The policy fills the remaining $C-|\mathcal F_t|$ slots.
-        \item The environment asserts capacity, conflicts and freshness each step.
-      \end{enumerate}
       \vspace{0.3em}
-      \begin{block}{Setting}
-        \small $F=\lfloor 3M/C\rfloor$ \; (Intel: 22 slots = 1.8\,h; PEMS-BAY: 24 slots = 2\,h).
-        The policy is a Markov decision process over the sink's state, solved with PPO.
-      \end{block}
+      \centering
+      \begin{tikzpicture}[scale=0.9]
+        \node[circle,draw=accent,fill=accent!40,minimum size=0.6cm,font=\scriptsize] (a) at (0,0) {A};
+        \node[circle,draw=accent,fill=accent!15,minimum size=0.6cm,font=\scriptsize] (b) at (1.6,0.5) {B};
+        \node[circle,draw=accent,fill=accent!15,minimum size=0.6cm,font=\scriptsize] (c) at (1.6,-0.6) {C};
+        \node[circle,draw=muted,fill=white,minimum size=0.6cm,font=\scriptsize] (d) at (3.4,0) {D};
+        \draw[accent,thick] (a)--(b) (a)--(c);
+        \node[lab,text width=2.2cm] at (0,-1.2) {A transmits};
+        \node[lab,text width=2.6cm] at (1.9,1.25) {B, C: sink now\\ fairly sure too};
+        \node[lab,text width=2.2cm] at (3.4,-1.0) {D: not linked,\\ still unsure};
+      \end{tikzpicture}\\[0.3em]
+      {\scriptsize\color{muted} The \textbf{information gain} of a sensor = how much total uncertainty disappears if it
+      transmits. Kalman-greedy and our GNN both use it.}
     \end{column}
   \end{columns}
 \end{frame}
 
-% =================================================================== 11 ARCHITECTURE
+% =================================================================== GOAL + FRESHNESS
+\begin{frame}{Methodology (3/5): Goal and Freshness Guarantee}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \sect{Goal}
+      \begin{block}{}
+        \small Keep the gap between the \textbf{true readings} and the \textbf{sink's estimates} as small as possible,
+        averaged over all sensors and all time slots.
+      \end{block}
+      \sect{Rules in every slot}
+      \begin{itemize}\small
+        \item At most $C$ sensors transmit.
+        \item No sensor stays silent for more than $F$ slots.
+      \end{itemize}
+      \sect{Age of Information (AoI)}
+      {\small Slots since the sink last heard from a sensor. It resets to 1 when the sensor transmits:}\\[0.3em]
+      \begin{tikzpicture}[x=0.62cm,y=0.5cm]
+        \foreach \v [count=\i] in {1,2,3,4,1,2,3,1}
+          \node[draw=rule,fill=paper,minimum size=0.5cm,font=\scriptsize] at (\i,0) {\v};
+        \foreach \i in {5,8} \node[font=\tiny,color=good] at (\i,-0.9) {polled};
+        \node[lab,anchor=east] at (0.5,0) {age};
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \sect{Freshness guard (same for every scheduler)}
+      \begin{enumerate}\small\setlength\itemsep{0.35em}
+        \item Find sensors whose age has reached $F$.
+        \item Book them into this slot first (oldest first).
+        \item The scheduler fills only the remaining places.
+        \item The simulator checks the rules every slot.
+      \end{enumerate}
+      \begin{block}{Our setting}
+        \small $F$ = 3 $\times$ the round-robin cycle:\\
+        Intel Lab: 22 slots (1.8 hours)\\
+        PEMS-BAY: 24 slots (2 hours)
+      \end{block}
+      {\scriptsize\color{muted} A hard rule, not a penalty: the scheduler can never trade a sensor's freshness for
+      lower error.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== ARCHITECTURE
 \begin{frame}{Methodology (4/5): GNN Scheduler Architecture}
   \centering
   \begin{tikzpicture}[node distance=0.45cm and 0.5cm]
-    \node[st=muted] (in) {\textbf{Inputs}\\ 13 node features\\ $A_{\text{corr}}$, $A_{\text{post}}$};
-    \node[st=accent,right=of in] (emb) {\textbf{Embed}\\ MLP $13\!\to\!64$};
-    \node[st=accent,right=of emb,text width=3.4cm] (mp) {\textbf{3 $\times$ graph layer}\\[0.2em] $h\leftarrow\mathrm{LN}\big(h+\mathrm{MLP}[\,h,$\\ $\tilde A_{\text{corr}}h,\ \tilde A_{\text{post}}h,\ \bar h\,]\big)$};
-    \node[st=accent,right=of mp] (h) {\textbf{Embeddings} $h_i$\\ correction $f_\theta(h_i)$\\ pair term $G_{ij}=q_i^{\top}k_j$};
-    \node[st=ink,below=0.9cm of h,text width=4.3cm,xshift=-0.6cm] (logit) {\textbf{Pointer decoder: logit of sensor $i$}\\[0.2em]
-       $\alpha\log g_i + f_\theta(h_i) + \textstyle\sum_{j\in\text{picked}} G_{ij}$};
-    \node[st=good,left=of logit,text width=2.4cm] (mask) {\textbf{Mask}\\ picked, forced,\\ conflicting};
-    \node[st=orangeb,left=of mask,text width=2.4cm] (pick) {\textbf{Softmax $\rightarrow$ pick}\\ sample (train) or\\ argmax (test)};
-    \node[st=ink,left=of pick,text width=2.4cm] (kal) {\textbf{Kalman update}\\ condition $P$ on pick,\\ recompute $g$};
+    \node[st=muted] (in) {\textbf{Inputs}\\ 13 facts per sensor\\ + 2 graphs};
+    \node[st=accent,right=of in] (emb) {\textbf{Encode}\\ each sensor as 64 numbers};
+    \node[st=accent,right=of emb,text width=3.1cm] (mp) {\textbf{3 message-passing layers}\\ each sensor gathers info from its correlated neighbours};
+    \node[st=accent,right=of mp] (h) {\textbf{Sensor summary}\\ state + neighbourhood};
+    \node[st=ink,below=0.9cm of h,text width=4.1cm,xshift=-0.6cm] (logit) {\textbf{Score each sensor}\\ information gain + learned correction $-$ ``similar sensor already picked''};
+    \node[st=good,left=of logit,text width=2.4cm] (mask) {\textbf{Block}\\ already picked or\\ already forced};
+    \node[st=orangeb,left=of mask,text width=2.4cm] (pick) {\textbf{Pick}\\ the best-scoring\\ sensor};
+    \node[st=ink,left=of pick,text width=2.4cm] (kal) {\textbf{Update}\\ sink's uncertainty\\ after this pick};
 
     \draw[arr] (in)--(emb); \draw[arr] (emb)--(mp); \draw[arr] (mp)--(h); \draw[arr] (h)--(logit);
     \draw[arr] (logit)--(mask); \draw[arr] (mask)--(pick); \draw[arr] (pick)--(kal);
-    \draw[arr] (kal.north) -- ++(0,0.35) -| node[lab,pos=0.27,above]{repeat until $C$ sensors chosen} (logit.north west);
+    \draw[arr] (kal.north) -- ++(0,0.35) -| node[lab,pos=0.27,above]{repeat until the slot is full} (logit.north west);
   \end{tikzpicture}
   \vspace{0.4em}
   \begin{columns}[T]
     \begin{column}{0.5\textwidth}
       \begin{itemize}\scriptsize
-        \item Features: AoI, last polled, posterior variance (and log), gain $g_i$ (and log),
-              forced flag, freshness slack, $C/M$, $\hat\rho_i$, drift rate, graph degree, guard on/off.
-        \item $A_{\text{post}}=|P_{ij}|/\sqrt{P_{ii}P_{jj}}$: who is redundant \emph{right now}.
+        \item \textbf{13 facts per sensor}: its age, how unsure the sink is about it, how much it would teach the sink,
+              how soon the freshness rule will force it, how fast it changes, how connected it is, \dots
+        \item \textbf{Two graphs}: who is correlated in general, and who is redundant right now.
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
       \begin{itemize}\scriptsize
-        \item \textbf{Residual design}: $f_\theta$ and $G$ start at zero, so the untrained actor
-              \emph{is} Kalman-greedy (unit-tested).
-        \item Plackett--Luce product of softmaxes gives exact log-probabilities for PPO.
-        \item 137k parameters; works for any $M$ (shared weights).
+        \item Picks one sensor at a time, so the second pick knows about the first (no two near-identical sensors).
+        \item Before training it behaves \textbf{exactly like Kalman-greedy}; training only adds improvements.
+        \item Small model (137k parameters); one model works for 45 or 325 sensors.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
-% =================================================================== 12 PPO
-\begin{frame}[fragile]{Methodology (5/5): Training with PPO}
+% =================================================================== TRAINING
+\begin{frame}{Methodology (5/5): Training with Reinforcement Learning (PPO)}
   \begin{columns}[T]
-    \begin{column}{0.58\textwidth}
-      \begin{algorithm}[H]
-        \scriptsize
-        \caption{\small PPO training of the GNN scheduler}
-        \begin{algorithmic}[1]
-          \State Initialise actor $\pi_\theta$ = Kalman-greedy ($f_\theta{=}G{=}0$), critic $V_\phi$
-          \For{iteration $=1,\dots,N$}
-            \State Sample batch of envs: synthetic ($M\!\in\![10,100]$, random $C$, layout, $\rho$, $F$)
-            \Statex \hspace{1.2em} or, with prob.\ 0.35, real training-period replays
-            \For{$t=1,\dots,96$}
-              \State $\mathcal F_t\gets$ freshness guard; $S_t\gets\mathcal F_t\cup\pi_\theta(\text{features},A_{\text{corr}},A_{\text{post}})$
-              \State Step env; reward $r_t=-(1-\gamma)\log(\text{error}_t+0.005)$
-            \EndFor
-            \State Advantages $\hat A_t$ with GAE ($\gamma=0.95,\lambda=0.9$)
-            \For{4 epochs, minibatches of 512}
-              \State $\eta_t=\pi_\theta(S_t)/\pi_{\theta_{\text{old}}}(S_t)$ \Comment{Plackett--Luce}
-              \State $L=-\min(\eta_t\hat A_t,\operatorname{clip}(\eta_t,0.85,1.15)\hat A_t)-0.002\,\mathcal H$
-              \State Adam step on $\theta$; regress $V_\phi$ to returns
-            \EndFor
-            \State Every 10 iters: validate; keep best checkpoint
-          \EndFor
-        \end{algorithmic}
-      \end{algorithm}
+    \begin{column}{0.56\textwidth}
+      \centering
+      \begin{tikzpicture}[node distance=0.32cm,
+          stp/.style={draw=accent,fill=accent!8,rounded corners=3pt,text width=6.4cm,align=left,inner sep=5pt,font=\small}]
+        \node[stp] (s1) {\textbf{1. Start} from Kalman-greedy (the best classical scheduler).};
+        \node[stp,below=of s1] (s2) {\textbf{2. Practise}: run the scheduler on many networks: random simulated ones and
+          real training days.};
+        \node[stp,below=of s2] (s3) {\textbf{3. Reward}: lower estimation error at the sink $\Rightarrow$ higher reward.};
+        \node[stp,below=of s3] (s4) {\textbf{4. Improve}: PPO makes choices that earned more reward slightly more likely,
+          in small, safe steps.};
+        \node[stp,below=of s4] (s5) {\textbf{5. Check}: every 10 rounds, test on validation data; keep the best version.};
+        \foreach \a/\b in {s1/s2,s2/s3,s3/s4,s4/s5} \draw[arr] (\a)--(\b);
+        \draw[arr] (s5.east) -- ++(0.35,0) |- node[lab,pos=0.25,right]{repeat\\ 400 rounds} (s2.east);
+      \end{tikzpicture}
     \end{column}
-    \begin{column}{0.4\textwidth}
+    \begin{column}{0.42\textwidth}
       \sect{Why these choices}
-      \begin{itemize}\small\setlength\itemsep{0.4em}
-        \item \textbf{Greedy start}: PPO begins from the strongest model-based scheduler instead of random.
-        \item \textbf{Log reward} balances small and large networks in one batch.
-        \item \textbf{Real replays}: the sink is fitted on the first 70\% of the training period and
-              episodes run on the next 20\%, so the policy learns to cope with model mismatch.
-        \item Last 10\% of training data + seeds $\ge 9000$ for validation; test periods and
-              layouts ($\ge 10000$) are never seen.
+      \begin{itemize}\small\setlength\itemsep{0.45em}
+        \item \textbf{Why RL?} Nobody knows the ``right'' sensors for each slot, so there are no labels to learn from.
+              RL learns from the result: the error.
+        \item \textbf{Why PPO?} Stable and widely used; its small update steps keep the strong starting point.
+        \item \textbf{Real training days} teach it that the sink's model is never perfect.
+        \item Test days are \textbf{never} seen in training.
+        \item About 35 minutes on a laptop CPU.
       \end{itemize}
     \end{column}
   \end{columns}
@@ -546,10 +505,10 @@ tests/           21 unit/regression tests
         \textbf{Max-AoI (B1)} & poll the stalest sensors: AoI-based scheduling \cite{2,16} \\
         \textbf{Random} & uniform choice \\
         \textbf{Corr-diverse (v4)} & stalest first, discount neighbours by $|$correlation$|$ \\
-        \textbf{Max-uncertainty} & largest posterior variance $P_{ii}$ \\
-        \textbf{Kalman-greedy} & greedy variance reduction on the sink's covariance \cite{19} \\
+        \textbf{Max-uncertainty} & sensor the sink is most unsure about \\
+        \textbf{Kalman-greedy} & pick the sensor that removes the most uncertainty \cite{19} \\
         \textbf{Oracle-greedy} & Kalman-greedy with the \emph{true} covariance (synthetic only) \\
-        \textbf{Ablation} & GNN with message passing removed \\
+        \textbf{Ablations} & GNN without message passing; GNN without PPO \\
         \bottomrule
       \end{tabularx}
     \end{column}
@@ -587,126 +546,239 @@ tests/           21 unit/regression tests
 
 \section{Results and Discussion}
 
-% =================================================================== 18 RESULTS REAL
-\begin{frame}{Results (1/5): Real Sensor Data, Held-out Test Periods}
+% =================================================================== RESULTS 1
+\begin{frame}{Results (1/8): Real Data: Error on Unseen Test Days}
   \centering
-  \includegraphics[width=0.93\textwidth]{figures/real_benchmark.png}\\[0.2em]
+  \includegraphics[width=0.84\textwidth]{figures/real_benchmark.png}\\[0.1em]
   \begin{columns}[T]
-    \begin{column}{0.49\textwidth}
+    \begin{column}{0.31\textwidth}
+      \sect{How to read it}
       \begin{itemize}\scriptsize
-        \item \textbf{Intel Lab}: GNN \good{0.235\,$^\circ$C} vs.\ Max-AoI 0.292 (\good{$-20\%$}) and Kalman-greedy 0.277.
-              GNN beats Kalman-greedy in \textbf{10/10} test windows ($p=0.002$).
+        \item Each bar = a scheduler's average error on test days.
+        \item \textbf{Shorter bar = better}; best is at the top.
+        \item Label = error and change vs.\ Max-AoI (classic).
       \end{itemize}
     \end{column}
-    \begin{column}{0.49\textwidth}
+    \begin{column}{0.33\textwidth}
+      \sect{Intel Lab (45 sensors)}
       \begin{itemize}\scriptsize
-        \item \textbf{PEMS-BAY}: GNN 2.78\,mph vs.\ Max-AoI 2.85 (\good{$-2.4\%$}); Kalman-greedy is \bad{worse} than
-              Max-AoI here (2.95). GNN beats Kalman-greedy in \textbf{15/15} windows ($p=6\times10^{-5}$).
+        \item GNN: \good{0.235\,$^\circ$C} vs.\ classic 0.292\,$^\circ$C: \good{20\% lower}.
+        \item Beats Kalman-greedy on \textbf{10 of 10} test windows.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{PEMS-BAY (325 sensors)}
+      \begin{itemize}\scriptsize
+        \item GNN: \good{2.78 mph} vs.\ 2.85: \good{2.4\% lower}.
+        \item Kalman-greedy is \bad{worse} than classic (trusts a wrong model); GNN beats it on \textbf{15 of 15} days.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
-% =================================================================== 19 SWEEPS
-\begin{frame}{Results (2/5): Capacity and Size Sweeps, Real Data}
+% =================================================================== RESULTS 2
+\begin{frame}{Results (2/8): Does It Hold for Other Settings?}
   \centering
-  \includegraphics[width=0.95\textwidth]{figures/real_sweeps.png}\\[0.3em]
-  \begin{itemize}\small\setlength\itemsep{0.3em}
-    \item Intel Lab: GNN stays \good{17--26\%} below Max-AoI for every capacity $C=3\dots15$; Kalman-greedy and the
-          correlation heuristic are inconsistent (the heuristic even loses at $C=15$).
-    \item PEMS-BAY: the gain grows with capacity (2\% $\rightarrow$ 4\%) and network size; Kalman-greedy is
-          \bad{below} Max-AoI for most settings because its fitted model is over-confident on freeway data.
-  \end{itemize}
-\end{frame}
-
-% =================================================================== 20 SYNTHETIC
-\begin{frame}{Results (3/5): Synthetic Data, Ablation, Freshness}
+  \includegraphics[width=0.86\textwidth]{figures/real_sweeps.png}\\[0.1em]
   \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
-      \includegraphics[width=\textwidth]{figures/main_benchmark.png}
+    \begin{column}{0.31\textwidth}
+      \sect{How to read it}
       \begin{itemize}\scriptsize
-        \item Uniform: GNN \good{$-50\%$} MSE vs.\ Max-AoI; beats Kalman-greedy on 73\% of layouts ($p=0.008$) and
-              \textbf{oracle-greedy with the true covariance} on 70\% ($p=0.003$).
-        \item Clustered: all correlation-aware policies tie ($\approx-69\%$ vs.\ Max-AoI).
-        \item Ablation: message passing helps on synthetic layouts (wins 67\% uniform, 87\% clustered).
+        \item y-axis: \% less error than the classic scheduler.
+        \item \textbf{Above the dotted 0 line = better}; blue = ours.
+        \item x-axis: polls per slot, or number of sensors.
       \end{itemize}
     \end{column}
-    \begin{column}{0.36\textwidth}
-      \sect{Freshness guard switched off ($M{=}50$, $C{=}10$)}
+    \begin{column}{0.33\textwidth}
+      \sect{Intel Lab}
+      \begin{itemize}\scriptsize
+        \item Blue stays \good{17--26\%} better for \textbf{every} channel size (3 to 15 polls).
+        \item Other methods go up and down; one even falls below 0.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{PEMS-BAY}
+      \begin{itemize}\scriptsize
+        \item Smaller but steady gain (2--4\%), growing with more polls and more sensors.
+        \item Kalman-greedy (green) is mostly \bad{below 0}.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== RESULTS 3
+\begin{frame}{Results (3/8): Simulated Networks and the Freshness Rule}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \includegraphics[width=\textwidth]{figures/main_benchmark.png}
+      \sect{How to read it}
+      \begin{itemize}\scriptsize
+        \item 30 unseen random layouts of 50 sensors; shorter bar = lower error.
+        \item \textbf{Spread-out sensors}: GNN error is \good{half} the classic one, and beats even a greedy scheduler that is
+              told the true correlations (70\% of layouts).
+        \item \textbf{Clustered sensors}: all smart methods tie, about 69\% better than classic.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \sect{What if we remove the freshness rule?}
+      \footnotesize
+      \begin{tabular}{@{}lcc@{}}
+        \toprule
+        Scheduler & Error & Sensors ignored \\
+        \midrule
+        Classic (Max-AoI) & 0.040 & 0 \\
+        Kalman-greedy & 0.023 & \bad{18 of 50} \\
+        \textbf{GNN (ours)} & \good{0.020} & \good{0} \\
+        \bottomrule
+      \end{tabular}\\[0.6em]
+      {\scriptsize Greedy stops polling 18 sensors completely: if one broke, nobody would notice. Ours has the lowest
+      error \textbf{and} still visits every sensor.}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== RESULTS 4
+\begin{frame}{Results (4/8): Comparison with Recent Literature}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}YY@{}}
+    \toprule
+    \textbf{Existing approach} & \textbf{What the paper reports} & \textbf{Same approach vs.\ ours, on our real data} \\
+    \midrule
+    Poll the oldest sensor: base paper \cite{2}, Kadota \emph{et al.}\ \cite{16}
+      & Provably close to optimal (theory)
+      & Ours is \good{20\%} (Intel) and \good{2.4\%} (PEMS-BAY) more accurate; wins every test day \\
+    Structured deep RL: Chen \emph{et al.}\ \cite{8}
+      & 10--25\% lower error than plain deep RL
+      & Ours: \good{26\%} (Intel) and \good{13\%} (PEMS-BAY) lower error than Kalman-greedy \\
+    Greedy uncertainty reduction: Krause \emph{et al.}\ \cite{19}
+      & Near-optimal for a single slot
+      & Ours wins on 73\% of simulated layouts, even when greedy knows the true correlations \\
+    Safe deep RL: Reyhan \& Coleri \cite{9}
+      & AoI limits met with high probability
+      & Ours: limits met \textbf{always}; greedy without a limit ignores 18 of 50 sensors \\
+    \bottomrule
+  \end{tabularx}
+  \vspace{0.6em}
+
+  {\scriptsize\color{muted} Middle column: numbers from the papers' own experiments. Right column: we re-ran that type of
+  method on the same real test days as ours, so the comparison is fair.}
+\end{frame}
+
+% =================================================================== RESULTS 5
+\begin{frame}{Results (5/8): How Each Scheduler Behaves, and Limitations}
+  \begin{columns}[T]
+    \begin{column}{0.56\textwidth}
+      \includegraphics[width=\textwidth]{figures/poll_map.png}
+      \sect{How to read it}
+      \begin{itemize}\scriptsize
+        \item Each dot = a real sensor on the lab floor; \textbf{bigger dot = polled more often} (one test day).
+        \item Classic: all dots equal (pure rotation), error 0.45\,$^\circ$C.
+        \item Kalman-greedy: a few huge dots; fixates on a few sensors, 0.37\,$^\circ$C.
+        \item \textbf{Ours}: balanced; more polls where sensors are hard to guess, \good{0.33\,$^\circ$C}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \sect{Takeaways}
+      \begin{itemize}\scriptsize\setlength\itemsep{0.3em}
+        \item Biggest gains where sensors are \textbf{strongly correlated} (lab), smaller on freeways.
+        \item Robust when the sink's model is imperfect.
+        \item Fast: 5\,ms (Intel), 37\,ms (PEMS-BAY) per decision; a slot lasts 5 minutes.
+      \end{itemize}
+      \sect{Limitations}
+      \begin{itemize}\scriptsize\setlength\itemsep{0.3em}
+        \item On real data, removing message passing does not hurt: the gain comes mainly from the learned scoring.
+        \item On simulated networks larger than 100 sensors, Kalman-greedy is still about 10\% better.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== RESULTS 6
+\begin{frame}{Results (6/8): Ablation: With PPO vs.\ Without PPO}
+  \centering
+  \includegraphics[width=0.74\textwidth]{figures/ppo_ablation.png}\\[0.1em]
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}
+      \sect{What we compared}
+      \begin{itemize}\scriptsize
+        \item Same network and inputs, same freshness rule.
+        \item \textbf{Without PPO}: untrained GNN (acts exactly like Kalman-greedy), or random weights.
+        \item \textbf{With PPO}: trained GNN, with and without message passing.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{What it shows}
+      \begin{itemize}\scriptsize
+        \item Intel: 0.277 $\rightarrow$ \good{0.235\,$^\circ$C}, \good{15\% lower}, wins \textbf{10/10} windows.
+        \item PEMS-BAY: 2.95 $\rightarrow$ \good{2.78 mph}, \good{5.6\% lower}, wins \textbf{14/15} days.
+        \item Untrained GNN is \bad{no better} than Kalman-greedy.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{Conclusion}
+      \begin{itemize}\scriptsize
+        \item \textbf{PPO is where the gain comes from}: it learns to correct a sink model that does not match real data.
+        \item Message passing adds little on real data; on simulated data PPO adds only 0--3\%.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== RESULTS 7
+\begin{frame}{Results (7/8): With vs.\ Without PPO on Every Test Window}
+  \centering
+  \includegraphics[width=0.74\textwidth]{figures/ppo_per_window.png}\\[0.1em]
+  \begin{columns}[T]
+    \begin{column}{0.31\textwidth}
+      \sect{How to read it}
+      \begin{itemize}\scriptsize
+        \item One row = one unseen test window of real data.
+        \item Light dot = GNN without PPO; dark dot = with PPO. \textbf{Further left = better.}
+        \item Number = change caused by PPO.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{Intel Lab}
+      \begin{itemize}\scriptsize
+        \item PPO lowers the error in \good{all 10 windows}, by \good{11--25\%}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \sect{PEMS-BAY}
+      \begin{itemize}\scriptsize
+        \item Lower in \good{14 of 15} windows (up to \good{10\%}); in 3 windows the difference is 1\% or less.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% =================================================================== RESULTS 8
+\begin{frame}{Results (8/8): With vs.\ Without PPO Over Time, and Overall}
+  \centering
+  \includegraphics[width=0.77\textwidth]{figures/ppo_over_time.png}\\[0.1em]
+  \begin{columns}[T]
+    \begin{column}{0.4\textwidth}
+      \sect{How to read it}
+      \begin{itemize}\scriptsize
+        \item Sink error through the day, averaged over all test windows; lower = better.
+        \item The gap is \textbf{largest at the peaks} (temperature changes, rush hours): exactly where the sink's model is
+              most wrong and PPO has learned to correct it.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.57\textwidth}
+      \sect{Error reduction from PPO (same GNN, before vs.\ after)}
       \scriptsize
       \begin{tabular}{@{}lccc@{}}
         \toprule
-        Policy & MSE & Starved & Max AoI \\
+        Setting & Lower error & Windows won & Significant? \\
         \midrule
-        Max-AoI & 0.0399 & 0 & 5 \\
-        Kalman-greedy & 0.0229 & \bad{18} & \bad{401} \\
-        Oracle-greedy & 0.0226 & \bad{19.6} & \bad{401} \\
-        \textbf{GNN (ours)} & \good{0.0200} & \good{0} & 10.3 \\
+        Intel Lab (real) & \good{15.4\%} & 10 / 10 & yes ($p=0.002$) \\
+        PEMS-BAY (real) & \good{5.6\%} & 14 / 15 & yes ($p=0.0003$) \\
+        Simulated, spread-out & 2.6\% & 22 / 30 & yes ($p=0.008$) \\
+        Simulated, clustered & 1.2\% & 17 / 30 & no ($p=0.64$) \\
         \bottomrule
-      \end{tabular}\\[0.5em]
-      {\scriptsize Greedy variance reduction \textbf{abandons} sensors it can infer from neighbours (never polled
-      in 400 slots). The GNN gets lower error \emph{and} polls everyone, even without the guard.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% =================================================================== 21 COMPARISON WITH LITERATURE
-\begin{frame}{Results (4/5): Comparison with Recent Literature}
-  \scriptsize
-  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.0cm}YY@{}}
-    \toprule
-    \textbf{Work} & \textbf{Approach} & \textbf{Reported in their own setting} & \textbf{Same approach, measured on our real data} \\
-    \midrule
-    Ramakanth \emph{et al.}\ \cite{2}, INFOCOM 2024; Kadota \emph{et al.}\ \cite{16}
-      & AoI-based (max-age) scheduling, correlation ignored
-      & Provably within a constant factor of optimal (Wiener model, 1 source / slot)
-      & Our Max-AoI (B1): GNN lowers RMSE \good{20\%} (Intel) and \good{2.4\%} (PEMS-BAY); wins 10/10 and 15/15 windows \\
-    \addlinespace
-    Chen \emph{et al.}\ \cite{8}, ICC 2023
-      & Structure-enhanced DRL for remote-estimation MSE
-      & 10--25\% lower MSE than benchmark DRL; 50\% less training time
-      & GNN: \good{25.8\%} lower MSE than Kalman-greedy (Intel), \good{13.4\%} (PEMS-BAY); trains in $\approx$35\,min on a CPU \\
-    \addlinespace
-    Krause \emph{et al.}\ \cite{19} (greedy variance reduction)
-      & Submodular greedy sensor selection
-      & Near-optimal one-step selection
-      & GNN beats it in 73\% of synthetic layouts and beats it \emph{with the true covariance} in 70\% \\
-    \addlinespace
-    Reyhan \& Coleri \cite{9}, TCOM 2025; Farag \emph{et al.}\ \cite{7}
-      & DRL with AoI-violation \emph{probability} constraints
-      & Constraints satisfied in probability
-      & \textbf{Hard} bound: zero violations by construction; unconstrained greedy starves 18/50 sensors \\
-    \bottomrule
-  \end{tabularx}
-  \vspace{0.5em}
-
-  {\scriptsize\color{muted} Numbers in the third column come from the cited papers' own setups and are not
-  directly comparable; the fourth column re-runs that \emph{class} of method on our held-out data under identical conditions.}
-\end{frame}
-
-% =================================================================== 22 DISCUSSION
-\begin{frame}{Results (5/5): Discussion and Limitations}
-  \begin{columns}[T]
-    \begin{column}{0.56\textwidth}
-      \includegraphics[width=\textwidth]{figures/poll_map.png}\\[-0.2em]
-      {\scriptsize\color{muted} Bubble area = share of slots each sensor was polled (Intel Lab, one test day).
-      Max-AoI is uniform; Kalman-greedy concentrates on a few ``hub'' sensors; the GNN spreads polls
-      by redundancy.}
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \sect{What the results say}
-      \begin{itemize}\scriptsize\setlength\itemsep{0.25em}
-        \item Correlation awareness pays most where sensors are \textbf{strongly redundant} (lab floor), less on freeways.
-        \item The learned policy is \textbf{robust to model mismatch}: Kalman-greedy trusts a wrong model; PPO on real replays corrects for it.
-        \item Fast: 4.6\,ms (Intel) and 37\,ms (PEMS-BAY) per decision vs.\ a 5-minute slot.
-      \end{itemize}
-      \sect{Limitations (honest)}
-      \begin{itemize}\scriptsize\setlength\itemsep{0.25em}
-        \item On real data the \textbf{no-message-passing ablation ties} the full GNN: the gain comes mostly from the
-              learned residual decoder.
-        \item Synthetic $M\ge100$: Kalman-greedy is 8--12\% better (training covered $M\le100$).
-        \item Linear-Gaussian sink; ideal channel apart from capacity and conflicts.
-      \end{itemize}
+      \end{tabular}
     \end{column}
   \end{columns}
 \end{frame}
@@ -796,8 +868,24 @@ tests/           21 unit/regression tests
   \end{enumerate}
 \end{frame}
 
-% =================================================================== THANK YOU
 \section*{Q\&A}
+% =================================================================== EXPECTED QUESTIONS
+\begin{frame}{Important Questions}
+  \begin{itemize}\setlength\itemsep{0.6em}
+    \item {\color{accent}\textbf{Why not simply poll the sensor that has waited longest?}}\\
+      {\small Its neighbour may already tell the sink what it reads, so that poll is wasted. We poll the sensor that teaches the sink the most.}
+    \item {\color{accent}\textbf{How do you make sure no sensor is ignored?}}\\
+      {\small A hard freshness rule: any sensor silent for $F$ slots (about 2 hours) is polled first, for every scheduler.}
+    \item {\color{accent}\textbf{Why reinforcement learning?}}\\
+      {\small There is no ``correct answer'' for each slot to learn from; RL learns directly from the resulting error.}
+    \item {\color{accent}\textbf{Why these two datasets?}}\\
+      {\small Intel Lab is a real sensor network with strong correlation; PEMS-BAY is larger (325 sensors) and less redundant. Together they show where the idea helps a lot and where it helps a little.}
+    \item {\color{accent}\textbf{Is the improvement real or luck?}}\\
+      {\small Tested only on unseen days: ours beats Kalman-greedy on 10/10 (Intel) and 15/15 (PEMS-BAY) test windows (Wilcoxon test, $p<0.01$).}
+  \end{itemize}
+\end{frame}
+
+% =================================================================== THANK YOU
 \begin{frame}
   \centering
   \vspace{1.2cm}
