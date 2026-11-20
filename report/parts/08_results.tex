@@ -270,6 +270,54 @@ is better than it. We keep the best checkpoint, which is 6.6 percent better on h
 \end{saybox}
 
 %-------------------------------------------------------------------------------
+\subsection{Ablation: with PPO vs.\ without PPO}
+To show what reinforcement learning actually contributes, we evaluated the \emph{same} GNN, with the same inputs and the
+same freshness guard, in three states: (1) \textbf{without PPO, initial weights}: the network exactly as it is before
+training, which by construction picks exactly like Kalman-greedy (we checked: identical error on every test window);
+(2) \textbf{without PPO, random weights}: the decoder's extra layers given ordinary random values instead of zeros;
+(3) \textbf{with PPO}: our trained scheduler.
+
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{ppo_ablation.png}
+\caption{Real test windows: the GNN without PPO (light blue, violet) against the GNN with PPO (dark blue).}\end{figure}
+
+\begin{center}\small
+\begin{tabular}{@{}lcccc@{}}
+  \toprule
+  Setting & Without PPO & With PPO & Error reduction & Windows won (Wilcoxon $p$) \\
+  \midrule
+  Intel Lab (RMSE, $^\circ$C) & 0.277 & \textbf{0.235} & 15.4\% & 10 / 10 \ (0.002) \\
+  PEMS-BAY (RMSE, mph) & 2.948 & \textbf{2.784} & 5.6\% & 14 / 15 \ (0.0003) \\
+  Synthetic, uniform (MSE) & 0.0205 & \textbf{0.0200} & 2.6\% & 22 / 30 \ (0.008) \\
+  Synthetic, clustered (MSE) & 0.0024 & 0.0023 & 1.2\% & 17 / 30 \ (0.64, not significant) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{ppo_per_window.png}
+\caption{Every real test window before and after PPO. Each row is one window; further left is better.}\end{figure}
+
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{ppo_over_time.png}
+\caption{Sink error through the test windows (1-hour moving average, mean over windows).}\end{figure}
+
+\textbf{How to read them.} In the per-window figure the light dot is the GNN without PPO and the dark dot the GNN with
+PPO; the number is the change. On Intel Lab PPO lowers the error in all 10 windows (11--25\%); on PEMS-BAY in 14 of 15
+(up to 10\%), with three windows within 1\%. The over-time figure shows the gap is largest at the peaks (temperature
+swings in the lab, rush hours on the freeway), which is when the sink's linear model is most wrong.
+
+\textbf{Why the synthetic gain is small.} In simulation the sink's model is exactly the true model, so Kalman-greedy is
+already close to optimal and there is little left to learn. With random weights the untrained network even scores
+slightly better than the trained one on clustered layouts (0.0022 vs.\ 0.0023, one random seed), because small random
+perturbations of an almost-optimal rule cost nothing there. On real data, random weights are worse than
+Kalman-greedy on PEMS-BAY (2.974 vs.\ 2.948) and gain only 1.3\% on Intel Lab, so they do not explain the real-data gains.
+
+\begin{saybox}
+``We switched PPO off and kept everything else the same. Without PPO the GNN is just Kalman-greedy, and with random
+weights it is no better. With PPO the error drops by 15 percent on the Intel lab data and by 5.6 percent on the freeway
+data, in almost every single test window. So the improvement comes from what PPO learns, mostly correcting a sink model
+that does not match real data.''
+\end{saybox}
+
+%-------------------------------------------------------------------------------
 \subsection{Figure: decision time}
 \begin{figure}[H]\centering\includegraphics[width=0.6\textwidth]{decision_time.png}
 \caption{Time to make one scheduling decision on a CPU, PEMS-BAY sub-networks (log scale).}\end{figure}
