@@ -187,7 +187,11 @@ def fig_training():
     ax.plot([v["iter"] for v in val], [(1 - v["ratio_vs_teacher"]) * 100 for v in val],
             color=COL["gnn"], marker="o", ms=4)
     ax.axhline(0, color=COL["kalman_greedy"], ls="--", lw=1.4)
-    ax.text(ax.get_xlim()[0], 0, " Kalman-greedy (starting point)", va="bottom", fontsize=9, color=INK_2)
+    ax.text(ax.get_xlim()[0], 0, " Kalman-greedy = the GNN before any PPO", va="bottom", fontsize=9, color=INK_2)
+    if d.get("init_from") and val and val[0]["iter"] < 0:  # this run continued an earlier PPO run
+        v0 = val[0]
+        ax.annotate("warm start\n(earlier PPO run)", (v0["iter"], (1 - v0["ratio_vs_teacher"]) * 100), xytext=(10, 18),
+                    textcoords="offset points", fontsize=9, color=INK, arrowprops={"arrowstyle": "-", "color": MUTED})
     b = d.get("best", {})
     if b:
         ax.scatter([b["iter"]], [(1 - b["score"]) * 100], s=140, facecolor="none", edgecolor=INK, lw=1.5, zorder=4)

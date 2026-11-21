@@ -261,12 +261,14 @@ random network (size, capacity, correlation), so rewards differ a lot between it
 moving average, which trends upward.
 
 \textbf{Right.} Held-out validation: how much lower the GNN's error is than Kalman-greedy's. The dashed line at 0 is
-where training starts (the network \emph{is} Kalman-greedy at initialisation). It stays above 0 throughout and peaks at
-+6.6\%; that checkpoint was kept.
+Kalman-greedy, which is exactly what the network does before any PPO (it \emph{is} Kalman-greedy at initialisation).
+The run shown continues an earlier 120-iteration PPO run (a warm start), which is why its first point is already
++5.2\% rather than 0. It stays above 0 throughout and peaks at +6.6\%; that checkpoint was kept.
 
 \begin{saybox}
-``Training starts exactly at the strongest classical scheduler, the dashed line, and every validation point after that
-is better than it. We keep the best checkpoint, which is 6.6 percent better on held-out validation.''
+``Before any training the network behaves exactly like the strongest classical scheduler, the dashed line. PPO moves
+it above that line; this run continued an earlier PPO run, starting at +5 percent, and we kept the best checkpoint,
+which is 6.6 percent better on held-out validation.''
 \end{saybox}
 
 %-------------------------------------------------------------------------------

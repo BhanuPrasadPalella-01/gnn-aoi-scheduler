@@ -486,9 +486,9 @@ tests/           21 unit/regression tests
       \includegraphics[width=\textwidth]{figures/training.png}\\[0.4em]
       \begin{itemize}\scriptsize
         \item Left: training reward over randomised scenarios (noisy by design: every batch is a different network).
-        \item Right: held-out validation error vs.\ Kalman-greedy, which is exactly where training starts (0\%).
+        \item Right: held-out validation error vs.\ Kalman-greedy (0\%), which is what the GNN does before any PPO.
               The best checkpoint is kept (\good{+6.6\%} better than Kalman-greedy).
-        \item Training is resumable and was warm-started from an earlier run.
+        \item This run continues an earlier 120-iteration PPO run, so it starts at +5\%, not 0.
       \end{itemize}
     \end{column}
   \end{columns}
