@@ -167,6 +167,9 @@ real held-out test windows (`python -m gnn_aoi experiments ppo_ablation ppo_time
 | Synthetic, clustered | 1.2% | 17 / 30 | 0.64 |
 
 PPO is where the real-data gain comes from; where the sink's model is exact (synthetic), it adds little.
+Untrained random weights (5 seeds, `ppo_random_seeds`) never come close on real data (Intel 0.279 °C,
+PEMS-BAY 3.05 mph on average), but on synthetic clustered layouts all 5 seeds are 5–8% *better* than the trained
+GNN: when the sink's model is exact, noise around Kalman-greedy helps a little and PPO does not find it.
 
 ![With vs without PPO](results/figures/ppo_ablation.png)
 ![Error over time](results/figures/ppo_over_time.png)

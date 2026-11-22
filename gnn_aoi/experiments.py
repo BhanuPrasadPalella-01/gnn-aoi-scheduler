@@ -216,17 +216,18 @@ def live_exports():
         print(f"  wrote {p}", flush=True)
 
 
-def _save_untrained(seed=0):
+def _save_untrained(seed=0, init_path=NO_PPO_CKPTS["gnn_init"][0], random_path=NO_PPO_CKPTS["gnn_random"][0]):
     import torch
     from gnn_aoi.gnn.model import Actor
     from gnn_aoi.gnn.train import TrainConfig, save
     cfg = TrainConfig()
     torch.manual_seed(seed)
     actor = Actor(cfg.d, cfg.layers)
-    save(actor, cfg, NO_PPO_CKPTS["gnn_init"][0], extra={"stage": "untrained (initial weights)"})
+    if init_path:
+        save(actor, cfg, Path(init_path), extra={"stage": "untrained (initial weights)"})
     for lin in (actor.base[-1], actor.q):  # undo the zero init: plain random network
         lin.reset_parameters()
-    save(actor, cfg, NO_PPO_CKPTS["gnn_random"][0], extra={"stage": "untrained (random weights)", "seed": seed})
+    save(actor, cfg, Path(random_path), extra={"stage": "untrained (random weights)", "seed": seed})
 
 
 def ppo_ablation(n_layouts=30, T=400):
@@ -245,6 +246,28 @@ def ppo_ablation(n_layouts=30, T=400):
         out[key] = {"scenario": sc.to_dict(), "results": _strip(benchmark(sc, policies(names), n_layouts, T))}
         print(f"  ppo_ablation/{key} done", flush=True)
     return _save("ppo_ablation", out)
+
+
+def ppo_random_seeds(seeds=range(5), n_layouts=30, T=400):
+    """The random-weights (no PPO) GNN over several weight seeds, so the
+    ablation does not rest on one lucky or unlucky draw."""
+    import tempfile
+    out = {"seeds": list(seeds), "settings": {}}
+    settings = {name: (_real_sc(name), cfg) for name, cfg in REAL.items()}
+    settings |= {"uniform": (HEADLINE, None), "clustered": (HEADLINE.with_(layout="clustered"), None)}
+    with tempfile.TemporaryDirectory() as tmp:
+        pols = []
+        for seed in seeds:
+            path = Path(tmp) / f"random_{seed}.pt"
+            _save_untrained(seed, init_path=None, random_path=path)
+            pols.append(GNNPolicy(str(path), f"gnn_random_{seed}", f"GNN, no PPO (random weights, seed {seed})"))
+        for key, (sc, cfg) in settings.items():
+            envs = RealEnvs(sc, key, cfg["windows"], cfg["T"]) if cfg else None
+            res = benchmark(sc, pols, n_layouts, cfg["T"] if cfg else T, envs=envs)
+            m = "rmse_units" if cfg else "mse"
+            out["settings"][key] = {"metric": m, "per_seed": [res[p.name][m][0] for p in pols]}
+            print(f"  ppo_random_seeds/{key} done", flush=True)
+    return _save("ppo_random_seeds", out)
 
 
 def ppo_timeline():
@@ -289,6 +312,6 @@ ALL = {
     "real_main": real_benchmark, "real_capacity": real_capacity, "real_scale": real_scale,
     "main": main_benchmark, "significance": significance, "unconstrained": unconstrained,
     "capacity": capacity_sweep, "correlation": correlation_sweep, "scale": scale_sweep,
-    "interference": interference_sweep, "pilot": pilot_sweep, "ppo_ablation": ppo_ablation, "ppo_timeline": ppo_timeline,
+    "interference": interference_sweep, "pilot": pilot_sweep, "ppo_ablation": ppo_ablation, "ppo_timeline": ppo_timeline, "ppo_random_seeds": ppo_random_seeds,
     "poll_frequency": poll_frequency, "replay": replay, "live": live_exports,
 }
