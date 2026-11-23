@@ -118,6 +118,23 @@ def test_untrained_actor_reproduces_kalman_greedy():
         obs, _, _ = env.step(mine)
 
 
+def test_no_ppo_checkpoints_for_the_ablation(tmp_path):
+    """The saved 'GNN without PPO' checkpoints: initial weights act exactly like
+    Kalman-greedy through the deployed policy; random weights really differ."""
+    from gnn_aoi.experiments import _save_untrained
+    from gnn_aoi.policies.gnn_policy import GNNPolicy
+    init, rand = tmp_path / "init.pt", tmp_path / "random.pt"
+    _save_untrained(0, init_path=init, random_path=rand)
+    sc = Scenario(M=20, C=4, freshness=12)
+    _, kg = run_episode(SchedulingEnv(sc, layout_seed=5), KalmanGreedyPolicy(), T=80, burn=0)
+    _, gi = run_episode(SchedulingEnv(sc, layout_seed=5), GNNPolicy(str(init)), T=80, burn=0)
+    assert gi["mse"] == kg["mse"] and gi["mean_age"] == kg["mean_age"]
+    a, b = (torch.load(p, weights_only=False)["state_dict"] for p in (init, rand))
+    assert torch.all(a["q.weight"] == 0) and not torch.all(b["q.weight"] == 0)
+    _, gr = run_episode(SchedulingEnv(sc, layout_seed=5), GNNPolicy(str(rand)), T=80, burn=0)
+    assert gr["mse"] != kg["mse"]  # random weights change the decisions
+
+
 def test_decode_logprob_is_consistent():
     torch.manual_seed(0)
     actor = Actor()
