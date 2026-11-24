@@ -6,7 +6,7 @@
         well as the full GNN. The real-data gain comes mainly from the learned residual decoder (the correction on top of
         Kalman-greedy and the pairwise term); message passing helps measurably only on synthetic layouts.
   \item \textbf{Large networks.} On synthetic networks with 100 or more sensors (beyond the training range), Kalman-greedy
-        is 8--12\% better than the GNN. Training on larger networks is the obvious fix.
+        is 6--11\% better than the GNN. Training on larger networks is the obvious fix.
   \item \textbf{Smaller gains on traffic.} PEMS-BAY sensors are less redundant than lab thermometers, so the gain is
         2.4\% in RMSE.
   \item \textbf{Model assumptions.} The sink assumes linear-Gaussian AR(1) dynamics; the channel is ideal apart from
@@ -63,9 +63,10 @@ still about 10 percent better. Both point to clear next steps.''
   \item[Why does the GNN start as Kalman-greedy?] So it never starts worse than the strongest classical method; RL only
         learns improvements. Behaviour cloning, which we tried first, never matched the teacher.
   \item[What happens without PPO?] The same GNN before training is exactly Kalman-greedy. PPO lowers the error by
-        15.4\% on Intel Lab (10/10 windows) and 5.6\% on PEMS-BAY (14/15); on synthetic data it adds only 1--3\%.
-  \item[How do you guarantee freshness?] Sensors at age $F$ are forced into the slot before the scheduler acts; the
-        environment asserts it every slot, and tests check every scheduler.
+        15.4\% on Intel Lab (10/10 windows) and 5.6\% on PEMS-BAY (14/15); on synthetic data it adds at most 2.4\%.
+  \item[How do you guarantee freshness?] Before the scheduler acts, the guard forces the most urgent sensors whenever
+        more of them would come due than the channel can serve in time (earliest deadline first), so no age can exceed
+        $F$ while $M\le CF$; the environment asserts it every slot, and tests check every scheduler under deadline bursts.
   \item[How do you avoid data leakage?] Chronological split; the profile, standardisation and model come only from the
         training period; validation uses separate data; a unit test checks it.
   \item[Why two datasets?] One with strong spatial correlation (indoor temperature), one large and less redundant
@@ -73,7 +74,7 @@ still about 10 percent better. Both point to clear next steps.''
   \item[Why does Kalman-greedy lose on PEMS-BAY?] Its fitted model is over-confident: it believes it knows sensors it
         does not, so it polls them too rarely. Our policy saw this mismatch during training on real replays.
   \item[Is the improvement statistically significant?] Yes: Intel 10/10 windows vs.\ Kalman-greedy ($p=0.002$), PEMS-BAY
-        15/15 ($p=6\times10^{-5}$), synthetic 73\% of layouts ($p=0.008$), Wilcoxon signed-rank tests.
+        15/15 ($p=6\times10^{-5}$), synthetic 67\% of layouts ($p=0.006$), Wilcoxon signed-rank tests.
   \item[How long does a decision take?] 4.6\,ms (Intel), 37\,ms (PEMS-BAY) on a laptop CPU; the slot is 5 minutes.
   \item[What is your base paper and what did you add?] Ramakanth, Tripathi \& Modiano, INFOCOM 2024. We add multiple polls
         per slot, correlations learned from data, a hard freshness bound, a learned GNN policy and real-data evaluation.

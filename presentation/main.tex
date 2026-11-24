@@ -310,9 +310,9 @@
     \end{column}
     \begin{column}{0.48\textwidth}
       \sect{Freshness guard (same for every scheduler)}
-      \begin{enumerate}\small\setlength\itemsep{0.35em}
-        \item Find sensors whose age has reached $F$.
-        \item Book them into this slot first (oldest first).
+      \begin{enumerate}\small\setlength\itemsep{0.25em}
+        \item If more sensors must report soon than the channel can carry in time, book the \textbf{most urgent} into
+              this slot now (earliest deadline first).
         \item The scheduler fills only the remaining places.
         \item The simulator checks the rules every slot.
       \end{enumerate}
@@ -592,7 +592,7 @@ tests/           21 unit/regression tests
     \begin{column}{0.33\textwidth}
       \sect{Intel Lab}
       \begin{itemize}\scriptsize
-        \item Blue stays \good{17--26\%} better for \textbf{every} channel size (3 to 15 polls).
+        \item Blue stays \good{16--26\%} better for \textbf{every} channel size (3 to 15 polls).
         \item Other methods go up and down; one even falls below 0.
       \end{itemize}
     \end{column}
@@ -615,7 +615,7 @@ tests/           21 unit/regression tests
       \begin{itemize}\scriptsize
         \item 30 unseen random layouts of 50 sensors; shorter bar = lower error.
         \item \textbf{Spread-out sensors}: GNN error is \good{half} the classic one, and beats even a greedy scheduler that is
-              told the true correlations (70\% of layouts).
+              told the true correlations (77\% of layouts).
         \item \textbf{Clustered sensors}: all smart methods tie, about 69\% better than classic.
       \end{itemize}
     \end{column}
@@ -653,7 +653,7 @@ tests/           21 unit/regression tests
       & Ours: \good{26\%} (Intel) and \good{13\%} (PEMS-BAY) lower error than Kalman-greedy \\
     Greedy uncertainty reduction: Krause \emph{et al.}\ \cite{19}
       & Near-optimal for a single slot
-      & Ours wins on 73\% of simulated layouts, even when greedy knows the true correlations \\
+      & Ours wins on 67\% of simulated layouts, even when greedy knows the true correlations \\
     Safe deep RL: Reyhan \& Coleri \cite{9}
       & AoI limits met with high probability
       & Ours: limits met \textbf{always}; greedy without a limit ignores 18 of 50 sensors \\
@@ -688,7 +688,7 @@ tests/           21 unit/regression tests
       \sect{Limitations}
       \begin{itemize}\scriptsize\setlength\itemsep{0.3em}
         \item On real data, removing message passing does not hurt: the gain comes mainly from the learned scoring.
-        \item On simulated networks larger than 100 sensors, Kalman-greedy is still about 10\% better.
+        \item On simulated networks larger than 100 sensors, Kalman-greedy is still 6--11\% better.
       \end{itemize}
     \end{column}
   \end{columns}
@@ -719,7 +719,7 @@ tests/           21 unit/regression tests
       \sect{Conclusion}
       \begin{itemize}\scriptsize
         \item \textbf{PPO is where the gain comes from}: it learns to correct a sink model that does not match real data.
-        \item Message passing adds little on real data; on simulated data PPO adds only 0--3\%.
+        \item Message passing adds little on real data; on simulated data PPO adds at most 2.4\%.
       \end{itemize}
     \end{column}
   \end{columns}
@@ -775,8 +775,8 @@ tests/           21 unit/regression tests
         \midrule
         Intel Lab (real) & \good{15.4\%} & 10 / 10 & yes ($p=0.002$) \\
         PEMS-BAY (real) & \good{5.6\%} & 14 / 15 & yes ($p=0.0003$) \\
-        Simulated, spread-out & 2.6\% & 22 / 30 & yes ($p=0.008$) \\
-        Simulated, clustered & 1.2\% & 17 / 30 & no ($p=0.64$) \\
+        Simulated, spread-out & 2.4\% & 20 / 30 & yes ($p=0.006$) \\
+        Simulated, clustered & $-0.2$\% & 14 / 30 & no ($p=0.86$) \\
         \bottomrule
       \end{tabular}
     \end{column}

@@ -21,7 +21,7 @@ Before running the final experiments we expected:
 \midrule
 E1 & Synthetic: about 50\% (uniform) and 69\% (clustered) lower MSE than Max-AoI. Intel: 20\% lower RMSE. PEMS-BAY: 2.4\%. & Confirmed; much larger indoors \\
 E2 & Gain $\approx$3\% at length scale 0.05, $\approx$68\% at 0.45. & Confirmed \\
-E3 & GNN beats Kalman-greedy in 10/10 Intel and 15/15 PEMS-BAY windows; 73\% of synthetic layouts; ties on clustered layouts. Kalman-greedy is better on synthetic networks of 100+ sensors. & Mostly confirmed \\
+E3 & GNN beats Kalman-greedy in 10/10 Intel and 15/15 PEMS-BAY windows; 67\% of synthetic layouts; ties on clustered layouts. Kalman-greedy is better on synthetic networks of 100+ sensors. & Mostly confirmed \\
 E4 & Without the guard Kalman-greedy never polls 18 of 50 sensors; the GNN polls all of them. & Confirmed \\
 E5 & 4.6\,ms (Intel), 37\,ms (PEMS-BAY) per slot vs.\ a 300-second slot. & Confirmed \\
 \bottomrule
@@ -116,7 +116,7 @@ percent, because traffic sensors are less redundant, but it is still consistent:
 \textbf{How to read it.} The y-axis is ``percent less error than Max-AoI''. The dotted line at 0 means ``same as
 Max-AoI''. Each line is a scheduler; the band is its 95\% CI.
 
-\textbf{Left (Intel, capacity $C=3$ to 15).} The GNN (blue) stays 17--26\% better than Max-AoI at every capacity. The
+\textbf{Left (Intel, capacity $C=3$ to 15).} The GNN (blue) stays 16--26\% better than Max-AoI at every capacity. The
 heuristics are inconsistent: v4 drops below zero at $C=15$; Kalman-greedy ranges from 2\% to 19\%.
 
 \textbf{Middle (PEMS-BAY, $C=10$ to 80).} The GNN's gain grows from 2\% to 4\% as capacity grows. Kalman-greedy is
@@ -152,12 +152,12 @@ station can already guess about it.''
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{main_benchmark.png}
 \caption{Synthetic fields, $M=50$, $C=10$, $F=15$, 30 unseen layouts $\times$ 350 scored slots.}\end{figure}
 
-\textbf{Uniform layouts (left).} GNN MSE 0.0200, 50\% below Max-AoI (0.0399). It beats Kalman-greedy (0.0205) on 73\%
-of layouts ($p=0.008$) and even the \emph{oracle} that knows the true covariance (0.0206) on 70\% ($p=0.003$). The
+\textbf{Uniform layouts (left).} GNN MSE 0.0200, 50\% below Max-AoI (0.0399). It beats Kalman-greedy (0.0205) on 67\%
+of layouts ($p=0.006$) and even the \emph{oracle} that knows the true covariance (0.0207) on 77\% ($p=0.0004$). The
 oracle is still greedy (one slot at a time); the GNN learned to look ahead. Max-uncertainty is the worst (0.0911):
 polling the most uncertain sensors without considering overlap wastes polls on neighbours.
 
-\textbf{Clustered layouts (right).} All correlation-aware schedulers reach about 0.0023--0.0024, 69\% below Max-AoI;
+\textbf{Clustered layouts (right).} All correlation-aware schedulers reach about 0.0023, 69\% below Max-AoI;
 differences between them are not significant. In tight clusters any sensible correlation-aware rule finds the
 redundancy.
 
@@ -190,13 +190,13 @@ classic scheduler is the freshest but not the best informed. Ours is nearly as f
 \caption{MSE reduction against Max-AoI as one setting changes at a time.}\end{figure}
 
 \begin{itemize}
-  \item \textbf{Capacity}: with very few polls ($C=4$), the GNN gains 26\% vs.\ 20\% for Kalman-greedy (GNN MSE 0.118 vs.\
+  \item \textbf{Capacity}: with very few polls ($C=4$), the GNN gains 26\% vs.\ 21\% for Kalman-greedy (GNN MSE 0.118 vs.\
         0.127): when the channel is scarce, planning matters most. The gain rises to about 70\% at $C=20$.
   \item \textbf{Correlation strength}: at length scale 0.05 (sensors almost independent) every method gains only about
         3\%: there is nothing to exploit. At 0.45 it is about 68\%. This confirms the gain really comes from
         correlation.
   \item \textbf{Network size}: training saw up to 100 sensors; 150 and 200 are \emph{zero-shot}. The GNN still gains about
-        70\% vs.\ Max-AoI there, but Kalman-greedy and the oracle are 8--12\% better than the GNN for $M\ge100$.
+        70\% vs.\ Max-AoI there, but Kalman-greedy and the oracle are 6--11\% better than the GNN for $M\ge100$.
   \item \textbf{Interference}: as more sensor pairs are forbidden to transmit together, every method's gain falls (51\%
         to 11\%) because the constraint itself forces spreading. The GNN stays at or near the top.
 \end{itemize}
@@ -275,7 +275,7 @@ which is 6.6 percent better on held-out validation.''
 \subsection{Ablation: with PPO vs.\ without PPO}
 To show what reinforcement learning actually contributes, we evaluated the \emph{same} GNN, with the same inputs and the
 same freshness guard, in three states: (1) \textbf{without PPO, initial weights}: the network exactly as it is before
-training, which by construction picks exactly like Kalman-greedy (we checked: identical error on every test window);
+training, which by construction picks exactly like Kalman-greedy (we checked: identical error on every real test window; on 1 of the 60 synthetic layouts a near-tie between two sensors, 5 parts in 10 million apart, is broken the other way once, because the network computes in 32-bit floats);
 (2) \textbf{without PPO, random weights}: the decoder's extra layers given ordinary random values instead of zeros;
 (3) \textbf{with PPO}: our trained scheduler.
 
@@ -289,8 +289,8 @@ training, which by construction picks exactly like Kalman-greedy (we checked: id
   \midrule
   Intel Lab (RMSE, $^\circ$C) & 0.277 & \textbf{0.235} & 15.4\% & 10 / 10 \ (0.002) \\
   PEMS-BAY (RMSE, mph) & 2.948 & \textbf{2.784} & 5.6\% & 14 / 15 \ (0.0003) \\
-  Synthetic, uniform (MSE) & 0.0205 & \textbf{0.0200} & 2.6\% & 22 / 30 \ (0.008) \\
-  Synthetic, clustered (MSE) & 0.0024 & 0.0023 & 1.2\% & 17 / 30 \ (0.64, not significant) \\
+  Synthetic, uniform (MSE) & 0.0205 & \textbf{0.0200} & 2.4\% & 20 / 30 \ (0.006) \\
+  Synthetic, clustered (MSE) & 0.0023 & 0.0023 & $-0.2$\% & 14 / 30 \ (0.86, not significant) \\
   \bottomrule
 \end{tabular}
 \end{center}
@@ -369,7 +369,7 @@ how each base station's picture of the lab drifts from reality.''
 \midrule
 Ramakanth \emph{et al.}\ \cite{2} (base paper); Kadota \emph{et al.}\ \cite{16} & AoI-based scheduling within a constant factor of optimal & GNN lowers error 20\% (Intel) and 2.4\% (PEMS-BAY) vs.\ Max-AoI; wins 10/10 and 15/15 windows \\
 Chen \emph{et al.}\ \cite{8} & Structure-enhanced DRL: 10--25\% lower MSE than benchmark DRL & GNN: 25.8\% (Intel) and 13.4\% (PEMS-BAY) lower MSE than Kalman-greedy \\
-Krause \emph{et al.}\ \cite{19} & Greedy variance reduction is near-optimal per step & GNN beats it on 73\% of synthetic layouts, and beats it with the true covariance on 70\% \\
+Krause \emph{et al.}\ \cite{19} & Greedy variance reduction is near-optimal per step & GNN beats it on 67\% of synthetic layouts, and beats it with the true covariance on 77\% \\
 Reyhan \& Coleri \cite{9}; Farag \emph{et al.}\ \cite{7} & AoI limits met in probability & Hard bound, zero violations; greedy without a bound starves 18/50 sensors \\
 \bottomrule
 \end{tabularx}

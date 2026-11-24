@@ -120,12 +120,19 @@ forecaster would not give us $P$, which is what makes correlation-aware scheduli
 
 Before any scheduler acts:
 \begin{enumerate}
-  \item Find all sensors with $a_i(t)\ge F$.
-  \item Sort them oldest first and take up to $C$ of them that do not conflict with each other: this is the forced
-        set $\mathcal F_t$.
+  \item For every sensor compute its slack $s_i=F-a_i(t)$: how many more slots it may stay silent.
+  \item Sensors with $s_i\le h$ must all report within the next $h+1$ slots, and only $Ch$ of them fit after this
+        slot. So the guard forces $n=\max_{0\le h<F}\big(|\{i:s_i\le h\}|-Ch\big)$ sensors now: the $n$ with the
+        smallest slack that do not conflict with each other (at most $C$). This is the forced set $\mathcal F_t$;
+        it always includes any sensor already at age $F$.
   \item The scheduler only fills the remaining $C-|\mathcal F_t|$ places.
   \item The environment checks (asserts) in every slot that capacity, conflicts and freshness hold.
 \end{enumerate}
+This is earliest-deadline-first scheduling: without interference it keeps every age $\le F$ for \emph{any}
+scheduler whenever $M\le CF$. An earlier version forced only sensors already at age $F$; when more than $C$ of them
+came due in the same slot, one of them overshot (Kalman-greedy reached age 108 against $F=97$ on PEMS-BAY with
+$C=10$). A unit test now reproduces such bursts and checks the bound for every scheduler.
+
 We use $F=\lfloor 3M/C\rfloor$: three times the round-robin period. Intel: $F=\lfloor 3\cdot45/6\rfloor=22$ slots
 (1.8 hours). PEMS-BAY: $F=\lfloor3\cdot325/40\rfloor=24$ slots (2 hours). Synthetic headline: $F=15$.
 
