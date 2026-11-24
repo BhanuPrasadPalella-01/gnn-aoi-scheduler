@@ -90,6 +90,25 @@ def test_every_baseline_keeps_freshness_and_interference(name):
     assert summary["max_age"] <= 8  # env.step also asserts conflicts/forced/capacity
 
 
+@pytest.mark.parametrize("M,C,F", [(20, 4, 12), (40, 4, 10), (50, 10, 5)])
+def test_freshness_bound_holds_when_many_sensors_come_due_together(M, C, F):
+    """All sensors start at the same age, so bursts of deadlines collide; the
+    lookahead guard must still keep every age <= F for any scheduler, down to
+    the tightest feasible bound M = C * F."""
+    from gnn_aoi.experiments import _save_untrained
+    from gnn_aoi.policies.gnn_policy import GNNPolicy
+    import tempfile
+    sc = Scenario(M=M, C=C, freshness=F)
+    with tempfile.TemporaryDirectory() as tmp:
+        rand = Path(tmp) / "random.pt"
+        _save_untrained(1, init_path=None, random_path=rand)
+        pols = [BASELINES[n]() for n in BASELINES] + [GNNPolicy(str(rand))]
+        for pol in pols:
+            for seed in (3, 5):
+                _, s = run_episode(SchedulingEnv(sc, layout_seed=seed), pol, T=150, burn=0)
+                assert s["max_age"] <= F, (pol.name, seed)
+
+
 def test_aoci_proxy_matches_legacy_definition():
     rng = np.random.default_rng(1)
     age = rng.integers(1, 10, size=8).astype(float)

@@ -106,11 +106,11 @@ The simulator gives ground truth (true covariance → an oracle) and lets us swe
 |---|---:|---:|
 | Max-AoI (B1) | 0.0399 | 0.0076 |
 | Corr-diverse (v4) | 0.0215 (−46%) | 0.0023 (−70%) |
-| Kalman-greedy | 0.0205 (−49%) | 0.0024 (−69%) |
-| Oracle-greedy (knows true Σ) | 0.0206 (−48%) | 0.0024 (−68%) |
+| Kalman-greedy | 0.0205 (−49%) | 0.0023 (−69%) |
+| Oracle-greedy (knows true Σ) | 0.0207 (−48%) | 0.0023 (−69%) |
 | **GNN-PPO (ours)** | **0.0200 (−50%)** | **0.0023 (−69%)** |
 
-* **Uniform layouts:** GNN-PPO beats Kalman-greedy on 73% of layouts (p = 0.008) and the true-covariance oracle on 70% (p = 0.003).
+* **Uniform layouts:** GNN-PPO beats Kalman-greedy on 67% of layouts (p = 0.006) and the true-covariance oracle on 77% (p = 0.0004).
 * **Clustered layouts:** with 50 sensors packed into a few clusters the field is so redundant that every
   correlation-aware method gets ~69% lower error than Max-AoI and they statistically tie.
 * **Fresher too:** mean AoI is 3.2 slots, vs 5.4 for Kalman-greedy.
@@ -147,6 +147,11 @@ flowchart LR
   Kalman variance reduction (recomputed after every pick) plus a learned GNN correction plus a learned
   pairwise interaction. At initialisation the corrections are zero, **so the untrained network is exactly
   Kalman-greedy**. PPO only has to learn when looking ahead, or distrusting the model, beats it.
+* **Freshness guard.** Before any scheduler acts, the environment computes each sensor's slack (how many more
+  slots it may stay silent before its age would exceed F). If more sensors must report within the next h slots
+  than the channel can carry in that time, the most urgent ones are booked into this slot (earliest deadline
+  first). Without interference this keeps every age ≤ F for *any* scheduler whenever M ≤ C·F; forcing only
+  sensors already at age F breaks the bound when more than C of them come due together.
 * **Training.** PPO on a mix of (a) randomised synthetic networks of 10–100 sensors (capacity, correlation
   length, per-sensor dynamics, layout, freshness, interference all randomised; reward = true posterior
   variance) and (b) replays of the real datasets' *training period* on sensor sub-networks (reward = actual
@@ -163,8 +168,8 @@ real held-out test windows (`python -m gnn_aoi experiments ppo_ablation ppo_time
 |---|---|---|---|
 | Intel Lab (real) | 15.4% | 10 / 10 | 0.002 |
 | PEMS-BAY (real) | 5.6% | 14 / 15 | 0.0003 |
-| Synthetic, uniform | 2.6% | 22 / 30 | 0.008 |
-| Synthetic, clustered | 1.2% | 17 / 30 | 0.64 |
+| Synthetic, uniform | 2.4% | 20 / 30 | 0.006 |
+| Synthetic, clustered | −0.2% | 14 / 30 | 0.86 |
 
 PPO is where the real-data gain comes from; where the sink's model is exact (synthetic), it adds little.
 Untrained random weights (5 seeds, `ppo_random_seeds`) never come close on real data (Intel 0.279 °C,
@@ -182,7 +187,7 @@ GNN: when the sink's model is exact, noise around Kalman-greedy helps a little a
   (clustered layouts: 87% of layouts, p = 3·10⁻⁶). On the real datasets the two are statistically tied
   (Intel p = 1.0, PEMS-BAY p = 0.2). Much of the real-data gain comes from learned timing on top of Kalman
   features rather than from neighbour messages.
-* **Very large synthetic networks:** at 100–200 simulated sensors Kalman-greedy has 9–12% lower error than the
+* **Very large synthetic networks:** at 100–200 simulated sensors Kalman-greedy has 6–11% lower error than the
   GNN. Both are still ~70% better than Max-AoI, but the learned policy doesn't win there.
 * **Compute:** at 325 sensors a decision takes ~17–27 ms on a laptop CPU (Kalman-greedy ~10–22 ms). That's
   negligible against a 5-minute slot.

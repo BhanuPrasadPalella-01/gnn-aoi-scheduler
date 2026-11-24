@@ -94,15 +94,24 @@ class SchedulingEnv:
             self.oracle.predict()
 
     def forced_polls(self):
-        """Sensors that would break the freshness bound if skipped this slot
-        (oldest first, conflict-feasible, at most C)."""
+        """Sensors that must be polled now so every sensor can still meet the
+        freshness bound (earliest-deadline-first lookahead, most urgent first,
+        conflict-feasible, at most C).
+
+        A sensor of age a may be skipped F - a more slots (its slack). Sensors
+        with slack <= h must all be polled within the next h + 1 slots, and
+        only C * h of them fit after this one, so the excess goes now. Forcing
+        only sensors already at age F (the old rule) breaks the bound when more
+        than C of them come due together. Without interference this keeps
+        every age <= F whenever M <= C * F."""
         F = self.sc.freshness
         if F <= 0:
             return []
-        due = np.where(self.age >= F, self.age, -np.inf)
-        if not np.isfinite(due).any():
+        slack = F - self.age
+        need = max(int((slack <= h).sum()) - self.C * h for h in range(F))
+        if need <= 0:
             return []
-        return [i for i in feasible_top(due, self.C, self.conflict) if np.isfinite(due[i])]
+        return feasible_top(-slack, min(need, self.C), self.conflict)
 
     def observe(self):
         self._forced = self.forced_polls()

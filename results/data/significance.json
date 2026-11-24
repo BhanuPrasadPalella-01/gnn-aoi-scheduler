@@ -22,19 +22,19 @@
    "label": "Max-uncertainty",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 1.862645149230957e-09,
-   "mean_rel_change_pct": -78.05833662751824
+   "mean_rel_change_pct": -78.01258028660364
   },
   "kalman_greedy": {
    "label": "Kalman-greedy",
-   "gnn_win_rate": 0.7333333333333333,
-   "wilcoxon_p": 0.007612137123942375,
-   "mean_rel_change_pct": -2.388556701604904
+   "gnn_win_rate": 0.6666666666666666,
+   "wilcoxon_p": 0.00577649287879467,
+   "mean_rel_change_pct": -2.2022743058342154
   },
   "oracle": {
    "label": "Oracle-greedy (true \u03a3)",
-   "gnn_win_rate": 0.7,
-   "wilcoxon_p": 0.0027663204818964005,
-   "mean_rel_change_pct": -2.9256829819800005
+   "gnn_win_rate": 0.7666666666666667,
+   "wilcoxon_p": 0.0003800932317972183,
+   "mean_rel_change_pct": -3.2581550779438557
   },
   "gnn_no_mp": {
    "label": "Ablation: no message passing",
@@ -66,19 +66,19 @@
    "label": "Max-uncertainty",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 1.862645149230957e-09,
-   "mean_rel_change_pct": -94.9449246561792
+   "mean_rel_change_pct": -95.15436832865532
   },
   "kalman_greedy": {
    "label": "Kalman-greedy",
-   "gnn_win_rate": 0.5666666666666667,
-   "wilcoxon_p": 0.6408254038542509,
-   "mean_rel_change_pct": -0.5268306874766409
+   "gnn_win_rate": 0.4666666666666667,
+   "wilcoxon_p": 0.8078304156661034,
+   "mean_rel_change_pct": 0.4429379138689602
   },
   "oracle": {
    "label": "Oracle-greedy (true \u03a3)",
-   "gnn_win_rate": 0.5666666666666667,
-   "wilcoxon_p": 0.11907656863331795,
-   "mean_rel_change_pct": -3.5144216656248264
+   "gnn_win_rate": 0.5,
+   "wilcoxon_p": 0.9192965272814035,
+   "mean_rel_change_pct": -0.6529416695715725
   },
   "gnn_no_mp": {
    "label": "Ablation: no message passing",
@@ -92,37 +92,37 @@
    "label": "Random",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 0.001953125,
-   "mean_rel_change_pct": -37.00433297285783
+   "mean_rel_change_pct": -37.00328924852151
   },
   "max_age": {
    "label": "Max-AoI (B1)",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 0.001953125,
-   "mean_rel_change_pct": -40.50805138307848
+   "mean_rel_change_pct": -40.508032838821634
   },
   "greedy_diverse": {
    "label": "Corr-diverse (v4)",
    "gnn_win_rate": 0.8,
    "wilcoxon_p": 0.048828125,
-   "mean_rel_change_pct": -7.346422825428014
+   "mean_rel_change_pct": -7.346428152873186
   },
   "max_variance": {
    "label": "Max-uncertainty",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 0.001953125,
-   "mean_rel_change_pct": -19.920493472025345
+   "mean_rel_change_pct": -19.92051118565219
   },
   "kalman_greedy": {
    "label": "Kalman-greedy",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 0.001953125,
-   "mean_rel_change_pct": -25.816977484471533
+   "mean_rel_change_pct": -25.816972514680238
   },
   "gnn_no_mp": {
    "label": "Ablation: no message passing",
    "gnn_win_rate": 0.5,
    "wilcoxon_p": 1.0,
-   "mean_rel_change_pct": -0.6450592928519648
+   "mean_rel_change_pct": -0.6450934970276369
   }
  },
  "pems_bay": {
@@ -130,37 +130,37 @@
    "label": "Random",
    "gnn_win_rate": 0.9333333333333333,
    "wilcoxon_p": 0.00018310546875,
-   "mean_rel_change_pct": -14.24415186414163
+   "mean_rel_change_pct": -14.244152385792155
   },
   "max_age": {
    "label": "Max-AoI (B1)",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 6.103515625e-05,
-   "mean_rel_change_pct": -10.68638015682629
+   "mean_rel_change_pct": -10.686372775093735
   },
   "greedy_diverse": {
    "label": "Corr-diverse (v4)",
    "gnn_win_rate": 0.8666666666666667,
    "wilcoxon_p": 0.01806640625,
-   "mean_rel_change_pct": -3.912890186497516
+   "mean_rel_change_pct": -3.91288797767486
   },
   "max_variance": {
    "label": "Max-uncertainty",
    "gnn_win_rate": 0.6666666666666666,
    "wilcoxon_p": 0.5614013671875,
-   "mean_rel_change_pct": -1.9874323865893488
+   "mean_rel_change_pct": -1.9874442428625305
   },
   "kalman_greedy": {
    "label": "Kalman-greedy",
    "gnn_win_rate": 1.0,
    "wilcoxon_p": 6.103515625e-05,
-   "mean_rel_change_pct": -13.354203764221845
+   "mean_rel_change_pct": -13.354215501615233
   },
   "gnn_no_mp": {
    "label": "Ablation: no message passing",
    "gnn_win_rate": 0.3333333333333333,
    "wilcoxon_p": 0.22930908203125,
-   "mean_rel_change_pct": 1.180860504251561
+   "mean_rel_change_pct": 1.1808604393703732
   }
  }
 }

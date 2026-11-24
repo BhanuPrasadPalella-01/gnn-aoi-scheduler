@@ -387,10 +387,11 @@ def fig_ppo_gain():
         p = wilcoxon(pb, pa).pvalue
         wins = int((pb < pa).sum())
         ax.bar(i, gain, width=0.6, color=COL["gnn"] if p < 0.05 else COL["gnn_init"], zorder=3)
-        ax.text(i, gain + 0.4, f"{gain:.1f}%\nwins {wins}/{len(pa)}\np = {p:.2g}", ha="center", va="bottom",
+        ax.text(i, max(gain, 0) + 0.4, f"{gain:.1f}%\nwins {wins}/{len(pa)}\np = {p:.2g}", ha="center", va="bottom",
                 fontsize=9, color=INK)
         ax.set_xticks(range(len(keys)), [k[1] for k in keys])
-    ax.set_ylim(0, 22)
+    ax.axhline(0, color=MUTED, lw=1)
+    ax.set_ylim(-2, 22)
     ax.set_ylabel("Error reduction from PPO (%)")
     ax.grid(axis="x", visible=False)
     fig.tight_layout()
