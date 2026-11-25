@@ -82,6 +82,30 @@ def test_greedy_respects_capacity_conflicts_and_forced():
     assert picks[0] == 0 and len(picks) == 4 and 1 not in picks and len(set(picks)) == 4
 
 
+def test_greedy_picks_match_brute_force_kalman_updates():
+    """The greedy uses a closed-form gain and a rank-one update of P. Check
+    both against the plain Kalman formula: at every step its pick must be the
+    sensor whose scalar measurement drops trace(P) the most."""
+    rng = np.random.default_rng(1)
+    n, C, r = 10, 4, 0.05
+    A = rng.normal(size=(n, n))
+    P0 = A @ A.T / n + np.eye(n) * 0.1
+    picks = greedy_variance_reduction(P0, C, r, np.zeros((n, n), dtype=bool))
+
+    def observe(P, j):
+        H = np.zeros((1, n))
+        H[0, j] = 1.0
+        K = P @ H.T / (H @ P @ H.T + r)
+        return (np.eye(n) - K @ H) @ P
+
+    P = P0.copy()
+    for step, j in enumerate(picks):
+        remaining = [k for k in range(n) if k not in picks[:step]]
+        best = min(remaining, key=lambda k: np.trace(observe(P, k)))
+        assert j == best
+        P = observe(P, j)
+
+
 @pytest.mark.parametrize("name", list(BASELINES))
 def test_every_baseline_keeps_freshness_and_interference(name):
     sc = Scenario(M=16, C=4, freshness=8, interference_radius=0.15)
