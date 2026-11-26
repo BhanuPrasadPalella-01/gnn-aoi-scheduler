@@ -62,6 +62,29 @@ def test_kalman_variance_is_calibrated():
     assert np.mean(errs) == pytest.approx(np.mean(pvars), rel=0.08)
 
 
+def test_batch_update_equals_one_reading_at_a_time():
+    """Polling several sensors in one slot is a single joint Kalman update.
+    With independent sensor noise it must give exactly the same mean and
+    covariance as folding the readings in one by one."""
+    sc = Scenario(M=10, C=4)
+    env = SchedulingEnv(sc, layout_seed=3)
+    model = env.field.true_model()
+    batch = KalmanSink(model, sc.obs_noise_var)
+    seq = KalmanSink(model, sc.obs_noise_var)
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        env.field.step()
+        batch.predict()
+        seq.predict()
+        idx = rng.choice(sc.M, sc.C, replace=False)
+        y = env.field.observe(idx)
+        batch.update(idx, y)
+        for i, yi in zip(idx, y):
+            seq.update([i], np.array([yi]))
+        np.testing.assert_allclose(batch.m, seq.m, atol=1e-9)
+        np.testing.assert_allclose(batch.P, seq.P, atol=1e-9)
+
+
 def test_polling_reduces_uncertainty():
     S = np.eye(3) * 0.5 + 0.5
     sink = KalmanSink(LinearGaussianModel(np.full(3, 0.9), 0.19 * S, S), 1e-3)
