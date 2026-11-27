@@ -270,3 +270,16 @@ def test_replay_never_crosses_a_recording_gap():
             sess.step()
             n += 1
     assert n == 4  # slots gap_start-3 .. gap_start, then stop
+
+
+def test_outages_and_position_normalisation_helpers():
+    from gnn_aoi.datasets import _normalize, outages_from
+    ts = np.array(["2004-03-01T00:00", "2004-03-01T00:05", "2004-03-01T00:10",
+                   "2004-03-01T01:00", "2004-03-01T01:05"], dtype="datetime64[m]")
+    assert outages_from(ts, 5) == [("2004-03-01 00:10", "2004-03-01 01:00")]
+    assert outages_from(ts[:3], 5) == []
+    # positions fit the unit square, keep their aspect ratio, and the short axis is centred
+    xy = np.array([[10.0, 5.0], [50.0, 5.0], [10.0, 25.0], [50.0, 25.0]])
+    out = _normalize(xy)
+    assert np.allclose(out[:, 0], [0, 1, 0, 1])
+    assert np.allclose(out[:, 1], [0.25, 0.25, 0.75, 0.75])
