@@ -283,3 +283,15 @@ def test_outages_and_position_normalisation_helpers():
     out = _normalize(xy)
     assert np.allclose(out[:, 0], [0, 1, 0, 1])
     assert np.allclose(out[:, 1], [0.25, 0.25, 0.75, 0.75])
+
+
+def test_graph_builders_threshold_and_distance_rules():
+    from gnn_aoi.graphs import correlation_adjacency, interference_adjacency
+    corr = np.array([[1.0, 0.5, -0.8], [0.5, 1.0, 0.2], [-0.8, 0.2, 1.0]])
+    A = correlation_adjacency(corr, 0.3)
+    # strength counts, sign does not; weak pairs and self-loops are dropped
+    assert np.allclose(A, [[0, 0.5, 0.8], [0.5, 0, 0], [0.8, 0, 0]])
+    pos = np.array([[0.0, 0.0], [0.1, 0.0], [0.5, 0.0]])
+    conflict = interference_adjacency(pos, 0.1)
+    assert conflict.tolist() == [[False, True, False], [True, False, False], [False, False, False]]
+    assert not interference_adjacency(pos, 0.0).any()
